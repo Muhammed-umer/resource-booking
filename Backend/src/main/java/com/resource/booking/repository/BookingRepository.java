@@ -1,34 +1,32 @@
 package com.resource.booking.repository;
 
 import com.resource.booking.entity.Booking;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
 import com.resource.booking.entity.BookingStatus;
 import com.resource.booking.entity.FacilityType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 
 @Repository
-     public interface BookingRepository extends JpaRepository<Booking, Long> {
+public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-        // ⿡ Get all bookings by facility type (AUDITORIUM or SEMINAR_HALL)
-        List<Booking> findByFacilityType(FacilityType facilityType);
+    // 1. Get bookings by facility
+    List<Booking> findByFacilityType(FacilityType facilityType);
 
-        // ⿢ Get all bookings by booking status (PENDING, APPROVED, REJECTED)
-        List<Booking> findByBookingStatus(BookingStatus status);
-
-        // ⿣ Check for bookings on a specific date for a facility
-        List<Booking> findByFacilityTypeAndFromDateLessThanEqualAndToDateGreaterThanEqual(
-                FacilityType facilityType, LocalDate toDate, LocalDate fromDate);
-
-        // ⿤ Get bookings for a specific department
-        List<Booking> findByDepartment(String department);
-
-        // ⿥ Get bookings by facility type and status (used in time clash check)
-        List<Booking>findByFacilityTypeAndBookingStatus(FacilityType facilityType,BookingStatus status);
-    }
-
-
+    // 2. The "Optimal" Conflict Checker (Checks Date AND Time overlap)
+    @Query("SELECT b FROM Booking b WHERE b.facilityType = :facility AND b.bookingStatus = 'APPROVED' " +
+            "AND (b.fromDate <= :toDate AND b.toDate >= :fromDate) " +
+            "AND (b.startTime < :endTime AND b.endTime > :startTime)")
+    List<Booking> findConflicts(
+            @Param("facility") FacilityType facility,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime
+    );
+}

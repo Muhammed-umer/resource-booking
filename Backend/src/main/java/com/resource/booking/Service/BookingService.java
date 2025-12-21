@@ -18,13 +18,26 @@ public class BookingService {
         this.bookingRepository = bookingRepository;
     }
 
-    // ---------------- Create Booking with Time Clash Check ----------------
+    // REPLACE YOUR EXISTING createBooking WITH THIS:
     public Booking createBooking(Booking booking) {
-        if (!isBookingTimeAvailable(booking)) {
+        // 1. Ask DB for conflicts using the NEW method we created
+        List<Booking> conflicts = bookingRepository.findConflicts(
+                booking.getFacilityType(),
+                booking.getFromDate(),
+                booking.getToDate(),
+                booking.getStartTime(),
+                booking.getEndTime()
+        );
+
+        // 2. If list is not empty, block it
+        if (!conflicts.isEmpty()) {
             throw new IllegalArgumentException(
                     "Selected time slot is already booked for this facility."
             );
         }
+
+        // 3. Save
+        booking.setBookingStatus(BookingStatus.PENDING);
         return bookingRepository.save(booking);
     }
 
@@ -57,24 +70,5 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
-    // ---------------- Time Clash Check ----------------
-    public boolean isBookingTimeAvailable(Booking newBooking) {
-        List<Booking> approvedBookings = bookingRepository.findByFacilityTypeAndBookingStatus(
-                newBooking.getFacilityType(),
-                BookingStatus.APPROVED
-        );
 
-        for (Booking booking : approvedBookings) {
-            boolean dateOverlap = !(newBooking.getToDate().isBefore(booking.getFromDate()) ||
-                    newBooking.getFromDate().isAfter(booking.getToDate()));
-
-            boolean timeOverlap = !(newBooking.getEndTime().isBefore(booking.getStartTime()) ||
-                    newBooking.getStartTime().isAfter(booking.getEndTime()));
-
-            if (dateOverlap && timeOverlap) {
-                return false;
-            }
-        }
-        return true;
-}
 }
