@@ -1,4 +1,4 @@
-package com.resource_booking;
+package com.resource.booking;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
