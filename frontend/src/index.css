@@ -1,3 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* TO STOP PAGE MOVING */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-font-smoothing: antialiased;
+}
+
+#root {
+    height: 100%;
+    width: 100%;
+}
+
+
+@keyframes float-gentle {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.animate-float {
+    animation: float-gentle 3s ease-in-out infinite;
+}
+
+@keyframes shine-move {
+    0% {
+        transform: translateX(-150%) skewX(-20deg);
+    }
+
+    50%,
+    100% {
+        transform: translateX(250%) skewX(-20deg);
+    }
+}
+
+.animate-shine {
+    animation: shine-move 3s infinite linear;
+}
