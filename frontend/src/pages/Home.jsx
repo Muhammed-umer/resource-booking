@@ -3,10 +3,19 @@ import ResourceCard from "../components/home/ResourceCard";
 import BookingButton from "../components/home/BookingButton";
 import CalendarView from "../components/home/CalendarView";
 import BookingModal from "../components/home/BookingModal";
+import StatusModal from "../components/home/StatusModal"; // <--- 1. Import the new Modal
 
 const Home = () => {
+  // Booking Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState("");
+
+  // 2. Status Modal State (Controls Success/Failure Popup)
+  const [statusModal, setStatusModal] = useState({
+    isOpen: false,
+    type: "success", // 'success' or 'error'
+    message: "",
+  });
 
   const handleCardClick = (resourceName) => {
     setSelectedResource(resourceName);
@@ -18,8 +27,15 @@ const Home = () => {
     setIsModalOpen(true);
   };
 
+  // 3. Helper function to show status and close the form
+  // We pass this to BookingModal so it can trigger the popup
+  const handleShowStatus = (type, message) => {
+    setIsModalOpen(false); // Close the form
+    setStatusModal({ isOpen: true, type, message }); // Open the success/failure popup
+  };
+
   return (
-    <div className="w-full max-w-7xl mx-auto pb-12 px-4">
+    <div className="w-full max-w-7xl mx-auto pb-12 px-4 relative">
       {/* 1. Header */}
       <div className="mb-10 mt-4">
         <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
@@ -106,11 +122,20 @@ const Home = () => {
       {/* 4. Calendar */}
       <CalendarView />
 
-      {/* 5. Modal */}
+      {/* 5. Booking Modal */}
       <BookingModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         selectedResource={selectedResource}
+        onShowStatus={handleShowStatus} // <--- 4. Pass the handler down
+      />
+
+      {/* 6. Status Modal (The GPay Style Popup) */}
+      <StatusModal
+        isOpen={statusModal.isOpen}
+        type={statusModal.type}
+        message={statusModal.message}
+        onClose={() => setStatusModal({ ...statusModal, isOpen: false })}
       />
     </div>
   );
