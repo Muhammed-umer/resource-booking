@@ -13,14 +13,14 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
 
-    // Constructor Injection
     public BookingService(BookingRepository bookingRepository) {
         this.bookingRepository = bookingRepository;
     }
 
-    // REPLACE YOUR EXISTING createBooking WITH THIS:
+    // ---------------- Create Booking (Updated Message Logic) ----------------
     public Booking createBooking(Booking booking) {
-        // 1. Ask DB for conflicts using the NEW method we created
+
+        // 1. Check for conflicts
         List<Booking> conflicts = bookingRepository.findConflicts(
                 booking.getFacilityType(),
                 booking.getFromDate(),
@@ -29,14 +29,21 @@ public class BookingService {
                 booking.getEndTime()
         );
 
-        // 2. If list is not empty, block it
+        // 2. If list is not empty, BLOCK IT with Details
         if (!conflicts.isEmpty()) {
+            // Get the booking that is blocking us
+            Booking blocker = conflicts.get(0);
+
+            String dept = blocker.getDepartment();
+            String reason = blocker.getEventName();
+
+            // Throw detailed error
             throw new IllegalArgumentException(
-                    "Selected time slot is already booked for this facility."
+                    "Already booked by " + dept + " for '" + reason + "'"
             );
         }
 
-        // 3. Save
+        // 3. Normal save
         booking.setBookingStatus(BookingStatus.PENDING);
         return bookingRepository.save(booking);
     }
@@ -48,8 +55,12 @@ public class BookingService {
 
     // ---------------- Get Bookings by Facility ----------------
     public List<Booking> getBookingsByFacility(String facilityTypeStr) {
-        FacilityType facilityType = FacilityType.valueOf(facilityTypeStr.toUpperCase());
-        return bookingRepository.findByFacilityType(facilityType);
+        try {
+            FacilityType facilityType = FacilityType.valueOf(facilityTypeStr.toUpperCase());
+            return bookingRepository.findByFacilityType(facilityType);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid facility type: " + facilityTypeStr);
+        }
     }
 
     // ---------------- Approve Booking ----------------
@@ -69,6 +80,4 @@ public class BookingService {
         booking.setBookingStatus(BookingStatus.REJECTED);
         return bookingRepository.save(booking);
     }
-
-
 }
