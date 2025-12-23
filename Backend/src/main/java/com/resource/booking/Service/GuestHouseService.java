@@ -16,9 +16,9 @@ public class GuestHouseService {
         this.guestHouseRepository = guestHouseRepository;
     }
 
-    // ⿡ Save booking with overlap check
+    // ---------------- Save Booking (With Detailed Error) ----------------
     public GuestHouse saveBooking(GuestHouse guestHouse) {
-        // Check room availability
+        // 1. Check room availability
         List<GuestHouse> conflicts = guestHouseRepository
                 .findByRoomNumberAndFromDateLessThanEqualAndToDateGreaterThanEqual(
                         guestHouse.getRoomNumber(),
@@ -26,33 +26,44 @@ public class GuestHouseService {
                         guestHouse.getFromDate()
                 );
 
+        // 2. If list is not empty, BLOCK IT with Details
         if (!conflicts.isEmpty()) {
-            throw new RuntimeException("Selected room is already booked for these dates");
+            // Get the booking that is blocking this room
+            GuestHouse blocker = conflicts.get(0);
+
+            String name = blocker.getGuestName();
+            String reason = blocker.getPurpose();
+
+            // Throw detailed error
+            throw new RuntimeException(
+                    "Room " + guestHouse.getRoomNumber() + " is already booked by " + name + " (Purpose: " + reason + ")"
+            );
         }
 
-        // Save booking
+        // 3. Save booking
+        guestHouse.setStatus(BookingStatus.PENDING);
         return guestHouseRepository.save(guestHouse);
     }
 
-    // ⿢ Get all bookings
+    // ---------------- Get All Bookings ----------------
     public List<GuestHouse> getAllBookings() {
         return guestHouseRepository.findAll();
     }
 
-    // ⿣ Get booking by ID
+    // ---------------- Get Booking by ID ----------------
     public GuestHouse getBookingById(Long id) {
         return guestHouseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found with ID: " + id));
     }
 
-    // ⿤ Approve booking
+    // ---------------- Approve Booking ----------------
     public GuestHouse approveBooking(Long id) {
         GuestHouse booking = getBookingById(id);
         booking.setStatus(BookingStatus.APPROVED);
         return guestHouseRepository.save(booking);
     }
 
-    // ⿥ Reject booking
+    // ---------------- Reject Booking ----------------
     public GuestHouse rejectBooking(Long id) {
         GuestHouse booking = getBookingById(id);
         booking.setStatus(BookingStatus.REJECTED);
