@@ -5,6 +5,8 @@ import com.resource.booking.entity.Booking;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
@@ -28,6 +30,11 @@ public class BookingController {
             // This sends the "Already booked by CSE..." message to the frontend
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
+    }
+    // ---------------- Approve Booking Endpoint ----------------
+    @PutMapping("/approve/{id}")
+    public ResponseEntity<Booking> approveBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.approveBooking(id));
     }
 
     // ---------------- Admin: View All ----------------

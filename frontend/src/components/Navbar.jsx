@@ -1,4 +1,5 @@
 import React from "react";
+import logo from '../assets/white.ico';
 
 const Navbar = ({ toggleSidebar }) => {
   return (
@@ -25,9 +26,11 @@ const Navbar = ({ toggleSidebar }) => {
 
         {/* Logo Section */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white/20 rounded-md flex items-center justify-center text-xs border border-white/30 backdrop-blur-sm">
-            Logo
-          </div>
+         <img
+  src={logo}
+  alt="College Logo"
+  className="w-10 h-10 "
+/>
           <span className="text-lg font-semibold tracking-wide">
             Resource Booking
           </span>

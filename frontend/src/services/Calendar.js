@@ -1,6 +1,17 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config"; // Ensure you import this if defined, or hardcode base url
 
-const BASE_URL = "http://localhost:8082/api";
+// Fallback if config not imported
+const BASE = API_BASE_URL || "http://localhost:8082";
 
-export const fetchCalendarData = (startDate, endDate) =>
-    axios.get('${BASE_URL}/Calendar', { params: { startDate,endDate}});
+export const fetchCalendarData = async (startDate, endDate) => {
+  try {
+    const response = await axios.get(`${BASE}/api/calendar`, {
+      params: { startDate, endDate }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching calendar data:", error);
+    return [];
+  }
+};
