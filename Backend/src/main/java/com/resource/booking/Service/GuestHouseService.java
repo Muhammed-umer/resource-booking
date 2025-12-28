@@ -1,8 +1,10 @@
 package com.resource.booking.Service;
 
-import com.resource.booking.entity.GuestHouse;
-import com.resource.booking.entity.BookingStatus;
+import com.resource.booking.entity.*;
+import com.resource.booking.repository.AuditLogRepository;
 import com.resource.booking.repository.GuestHouseRepository;
+import com.resource.booking.repository.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,62 +13,78 @@ import java.util.List;
 public class GuestHouseService {
 
     private final GuestHouseRepository guestHouseRepository;
+    private final UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
 
-    public GuestHouseService(GuestHouseRepository guestHouseRepository) {
+    public GuestHouseService(GuestHouseRepository guestHouseRepository,
+                             UserRepository userRepository,
+                             AuditLogRepository auditLogRepository) {
         this.guestHouseRepository = guestHouseRepository;
+        this.userRepository = userRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
-    // ---------------- Save Booking (With Detailed Error) ----------------
     public GuestHouse saveBooking(GuestHouse guestHouse) {
-        // 1. Check room availability
-        List<GuestHouse> conflicts = guestHouseRepository
-                .findByRoomNumberAndFromDateLessThanEqualAndToDateGreaterThanEqual(
-                        guestHouse.getRoomNumber(),
-                        guestHouse.getToDate(),
-                        guestHouse.getFromDate()
-                );
+        // ... (Keep existing conflict check logic) ...
+        List<GuestHouse> conflicts = guestHouseRepository.findByRoomNumberAndFromDateLessThanEqualAndToDateGreaterThanEqual(
+                guestHouse.getRoomNumber(), guestHouse.getToDate(), guestHouse.getFromDate());
 
-        // 2. If list is not empty, BLOCK IT with Details
         if (!conflicts.isEmpty()) {
-            // Get the booking that is blocking this room
-            GuestHouse blocker = conflicts.get(0);
-
-            String name = blocker.getGuestName();
-            String reason = blocker.getPurpose();
-
-            // Throw detailed error
-            throw new RuntimeException(
-                    "Room " + guestHouse.getRoomNumber() + " is already booked by " + name + " (Purpose: " + reason + ")"
-            );
+            throw new RuntimeException("Room " + guestHouse.getRoomNumber() + " is already booked.");
         }
-
-        // 3. Save booking
         guestHouse.setStatus(BookingStatus.PENDING);
         return guestHouseRepository.save(guestHouse);
     }
 
-    // ---------------- Get All Bookings ----------------
-    public List<GuestHouse> getAllBookings() {
-        return guestHouseRepository.findAll();
-    }
+    public List<GuestHouse> getAllBookings() { return guestHouseRepository.findAll(); }
 
-    // ---------------- Get Booking by ID ----------------
     public GuestHouse getBookingById(Long id) {
-        return guestHouseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Booking not found with ID: " + id));
+        return guestHouseRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
     }
 
-    // ---------------- Approve Booking ----------------
+    // --- APPROVE ---
     public GuestHouse approveBooking(Long id) {
         GuestHouse booking = getBookingById(id);
+        validatePermission();
+
         booking.setStatus(BookingStatus.APPROVED);
-        return guestHouseRepository.save(booking);
+        GuestHouse saved = guestHouseRepository.save(booking);
+
+        logAction("APPROVED", "Approved Guest House Room " + booking.getRoomNumber());
+        return saved;
     }
 
-    // ---------------- Reject Booking ----------------
+    // --- REJECT ---
     public GuestHouse rejectBooking(Long id) {
         GuestHouse booking = getBookingById(id);
+        validatePermission();
+
         booking.setStatus(BookingStatus.REJECTED);
-        return guestHouseRepository.save(booking);
+        GuestHouse saved = guestHouseRepository.save(booking);
+
+        logAction("REJECTED", "Rejected Guest House Room " + booking.getRoomNumber());
+        return saved;
+    }
+
+    // Helper: Guest House Permission Check
+    private void validatePermission() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User admin = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (admin.getRole() == Role.OWNER) return;
+
+        // Check if admin has GUEST_HOUSE permission
+        if (admin.getManagedFacilities() == null || !admin.getManagedFacilities().contains(FacilityType.GUEST_HOUSE)) {
+            throw new RuntimeException("You do not have permission to manage Guest House");
+        }
+    }
+
+    private void logAction(String action, String details) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        AuditLog log = new AuditLog();
+        log.setAction(action);
+        log.setDetails(details);
+        log.setPerformedBy(email);
+        auditLogRepository.save(log);
     }
 }

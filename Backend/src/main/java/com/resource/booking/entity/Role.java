@@ -1,7 +1,7 @@
 package com.resource.booking.entity;
-public enum Role {
-        USER,
-       ADMIN_SEMINAR,
-       ADMIN_RESOURCE
-}
 
+public enum Role {
+    USER,
+    ADMIN, // One generic admin role, permissions defined in User entity
+    OWNER  // Super Admin
+}

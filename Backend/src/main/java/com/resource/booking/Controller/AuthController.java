@@ -1,12 +1,11 @@
 package com.resource.booking.Controller;
 
 import com.resource.booking.Service.AuthService;
-import com.resource.booking.dto.*;
+import com.resource.booking.dto.AuthResponseDTO;
+import com.resource.booking.dto.LoginRequestDTO;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -18,35 +17,21 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/signup")
-    public String signup(@RequestBody SignupRequestDTO dto) {
-        return authService.signup(dto);
-    }
-
+    // Standard Login
     @PostMapping("/login")
     public AuthResponseDTO login(@RequestBody LoginRequestDTO dto) {
-        return authService.login(dto);
-    }
-    @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(
-            @RequestBody ForgetPasswordRequestDTO dto) {
-
-        authService.forgotPassword(dto.getEmail());
-        return ResponseEntity.ok("Password reset link sent to email");
+        return authService.login(dto.getEmail(), dto.getPassword());
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(
-            @RequestBody ResetPasswordRequestDTO dto) {
+    // Google Login
+    @PostMapping("/google")
+    public AuthResponseDTO googleLogin(@RequestBody Map<String, String> payload) {
+        return authService.loginWithGoogle(payload.get("token"));
+    }
 
-        authService.resetPassword(
-                dto.getToken(),
-                dto.getNewPassword(),
-                dto.getConfirmPassword()
-        );
-
-        return ResponseEntity.ok("Password reset successful");
-   }
+    // Initial Setup (Call this once via Postman/Curl)
+    @PostMapping("/create-initial-owner")
+    public String createOwner(@RequestBody LoginRequestDTO dto) {
+        return authService.createInitialOwner(dto.getEmail(), dto.getPassword());
+    }
 }
-
-

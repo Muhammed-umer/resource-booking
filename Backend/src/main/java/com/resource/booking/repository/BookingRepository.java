@@ -15,10 +15,17 @@ import java.util.List;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    // 1. Get bookings by facility
+    // Correct Enum-based finders
+    List<Booking> findByFacilityTypeAndBookingStatus(FacilityType facilityType, BookingStatus bookingStatus);
+
+    List<Booking> findByFacilityTypeAndBookingStatusNot(FacilityType facilityType, BookingStatus bookingStatus);
+
     List<Booking> findByFacilityType(FacilityType facilityType);
 
-    // 2. The "Optimal" Conflict Checker (Checks Date AND Time overlap)
+    @Query("SELECT b FROM Booking b WHERE b.fromDate <= :endDate AND b.toDate >= :startDate")
+    List<Booking> findBookingsBetweenDates(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    // Conflict Checker
     @Query("SELECT b FROM Booking b WHERE b.facilityType = :facility AND b.bookingStatus = 'APPROVED' " +
             "AND (b.fromDate <= :toDate AND b.toDate >= :fromDate) " +
             "AND (b.startTime < :endTime AND b.endTime > :startTime)")
@@ -28,10 +35,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("toDate") LocalDate toDate,
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime
-    );
-    @Query("SELECT b FROM Booking b WHERE b.fromDate <= :endDate AND b.toDate >= :startDate")
-    List<Booking> findBookingsBetweenDates(
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
     );
 }

@@ -1,51 +1,45 @@
 package com.resource.booking.Controller;
 
-import com.resource.booking.Service.BookingService;
+import com.resource.booking.Service.BookingService; // Use Service, not Repo directly
 import com.resource.booking.entity.Booking;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookings")
+@CrossOrigin("*")
 public class BookingController {
 
     private final BookingService bookingService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public BookingController(BookingService bookingService) {
+    public BookingController(BookingService bookingService, SimpMessagingTemplate messagingTemplate) {
         this.bookingService = bookingService;
+        this.messagingTemplate = messagingTemplate;
     }
 
-    // ---------------- Create Booking ----------------
-    @PostMapping
+    @PostMapping("/request")
     public ResponseEntity<?> createBooking(@RequestBody Booking booking) {
         try {
+            // Use Service to handle conflict checks & saving
             Booking savedBooking = bookingService.createBooking(booking);
-            return ResponseEntity.ok(savedBooking);
+
+            // Send WebSocket update
+            messagingTemplate.convertAndSend("/topic/bookings", savedBooking);
+
+            return ResponseEntity.ok("Booking requested successfully");
         } catch (IllegalArgumentException e) {
-            // This sends the "Already booked by CSE..." message to the frontend
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+            return ResponseEntity.status(409).body(e.getMessage()); // 409 Conflict
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error processing request");
         }
     }
-    // ---------------- Approve Booking Endpoint ----------------
-    @PutMapping("/approve/{id}")
-    public ResponseEntity<Booking> approveBooking(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.approveBooking(id));
-    }
 
-    // ---------------- Admin: View All ----------------
     @GetMapping
     public List<Booking> getAllBookings() {
         return bookingService.getAllBookings();
-    }
-
-    // ---------------- Admin: View by Facility ----------------
-    @GetMapping("/facility/{type}")
-    public List<Booking> getByFacility(@PathVariable String type) {
-        return bookingService.getBookingsByFacility(type);
     }
 }

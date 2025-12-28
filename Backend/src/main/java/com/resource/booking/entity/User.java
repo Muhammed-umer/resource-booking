@@ -1,6 +1,8 @@
 package com.resource.booking.entity;
-import lombok.Data;
+
 import jakarta.persistence.*;
+import lombok.Data;
+import java.util.Set;
 
 @Data
 @Entity
@@ -17,62 +19,22 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
 
     @Enumerated(EnumType.STRING)
     private Department department; // for USER only
 
-    private String name; // for ADMIN only
+    private String name; // for ADMIN/OWNER
 
-    // ===== GETTERS =====
-    public Long getId() {
-        return id;
-    }
+    // Stores permissions (e.g., [AUDITORIUM, GUEST_HOUSE])
+    @ElementCollection(targetClass = FacilityType.class, fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_managed_facilities", joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.STRING)
+    private Set<FacilityType> managedFacilities;
 
-    public String getEmail() {
-        return email;
-    }
+    // REMOVED: private String managedResource; (Redundant and error-prone)
 
-    public String getPassword() {
-        return password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public Department getDepartment() {
-        return department;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    // ===== SETTERS =====
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public void setDepartment(Department department) {
-        this.department = department;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
+    // Getters and Setters are handled by @Data (Lombok) but explicit ones are fine too.
 }

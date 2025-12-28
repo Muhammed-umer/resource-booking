@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { API_BASE_URL } from "../../config";
+
+import api from "../../services/api";
 
 const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
   const [formData, setFormData] = useState({
@@ -16,7 +17,7 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
     checkInTime: "",
     checkOutTime: "",
     roomNumber: 1,
-    requestedBy: "CurrentUser", 
+    requestedBy: "CurrentUser",
   });
 
   useEffect(() => {
@@ -30,15 +31,17 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
 
     const isGuestHouse = formData.resourceType === "Guest House";
-    
-    const baseUrl = isGuestHouse 
-      ? `${API_BASE_URL}/guesthouse/book` 
-      : `${API_BASE_URL}/api/bookings`;
 
+    // 1. Determine the URL (We use relative paths now)
+    const url = isGuestHouse
+      ? "/guesthouse/book"
+      : "/api/bookings";
+
+    // 2. Construct Payload (This part remains the same as your original code)
     let payload = {};
     if (isGuestHouse) {
       payload = {
@@ -66,26 +69,23 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
     }
 
     try {
-      const response = await fetch(baseUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // 3. Send Request using 'api' (Headers & Token are handled automatically)
+      await api.post(url, payload);
 
-      if (response.ok) {
-        onShowStatus("success", "Booking Request Sent Successfully!");
-      } else {
-        const errorText = await response.text();
-        onShowStatus("error", `Booking Failed: ${errorText}`);
-      }
-
+      // 4. Success handling
+      onShowStatus("success", "Booking Request Sent Successfully!");
     } catch (error) {
       console.error("Network Error:", error);
-      onShowStatus("error", "Network Error. Is Backend running?");
+
+      // 5. Error handling (Extracts message from backend response)
+      const errorMsg = error.response?.data || "Booking Failed";
+      onShowStatus("error", typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
     }
   };
 
   if (!isOpen) return null;
+
+
 
   const isGuestHouse = formData.resourceType === "Guest House";
 
@@ -95,7 +95,7 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
 
       {/* Modal Container */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 animate-[fadeIn_0.3s_ease-out] max-h-[90vh] overflow-y-auto overflow-x-hidden no-scrollbar">
-        
+
         {/* Header - Uses Primary Color */}
         <div className="bg-primary px-6 py-4 flex justify-between items-center sticky top-0 z-20 text-white shadow-md">
           <h3 className="font-semibold text-lg">Book {formData.resourceType || "Resource"}</h3>
@@ -103,7 +103,7 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          
+
           {/* Resource Selector */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Resource Type</label>
