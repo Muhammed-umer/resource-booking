@@ -151,5 +151,4 @@ public class Booking {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
-
 }

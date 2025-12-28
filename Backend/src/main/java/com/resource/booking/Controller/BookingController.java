@@ -38,6 +38,7 @@ public class BookingController {
 
     // ---------------- Admin: View by Facility ----------------
     @GetMapping("/facility/{type}")
+
     public List<Booking> getByFacility(@PathVariable String type) {
         return bookingService.getBookingsByFacility(type);
     }

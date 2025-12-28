@@ -80,4 +80,5 @@ public class BookingService {
         booking.setBookingStatus(BookingStatus.REJECTED);
         return bookingRepository.save(booking);
     }
+
 }

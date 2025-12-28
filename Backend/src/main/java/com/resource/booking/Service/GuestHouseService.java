@@ -69,4 +69,5 @@ public class GuestHouseService {
         booking.setStatus(BookingStatus.REJECTED);
         return guestHouseRepository.save(booking);
     }
+
 }

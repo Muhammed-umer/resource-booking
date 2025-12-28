@@ -171,5 +171,4 @@ public class GuestHouse {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
-
 }

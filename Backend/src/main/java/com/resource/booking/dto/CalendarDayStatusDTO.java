@@ -52,4 +52,5 @@ public class CalendarDayStatusDTO {
     public void setGuestHouseStatus(String guestHouseStatus) {
         this.guestHouseStatus = guestHouseStatus;
     }
+
 }

@@ -112,7 +112,6 @@ public class AuthService {
                 "Reset Password",
                 "Click here to reset password: " + resetLink
         );
-
     }
 
     // ----------------- RESET PASSWORD -----------------
