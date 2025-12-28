@@ -3,4 +3,5 @@ public enum FacilityType {
     SEMINAR_HALL,
     AUDITORIUM,
     GUEST_HOUSE,
+
 }

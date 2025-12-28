@@ -9,5 +9,4 @@ public class SignupRequestDTO {
     public Department department; // only for USER
     public String name; // only for ADMIN
     public Role role;
-
 }

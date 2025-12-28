@@ -42,3 +42,4 @@ public class BookingController {
         return bookingService.getBookingsByFacility(type);
     }
 }
+

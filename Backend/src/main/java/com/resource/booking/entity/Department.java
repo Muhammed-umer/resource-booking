@@ -7,5 +7,4 @@ public enum Department {
     IT,
     AUTOMOBILE,
     CIVIL
-
 }

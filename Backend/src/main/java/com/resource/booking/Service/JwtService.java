@@ -33,5 +33,4 @@ public class JwtService {
                 .signWith(key, SignatureAlgorithm.HS256) // ✅ Correct
                 .compact();
     }
-
 }

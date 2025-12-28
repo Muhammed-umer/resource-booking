@@ -3,5 +3,6 @@ public enum Role {
     USER,
     ADMIN_SEMINAR,
     ADMIN_RESOURCE
+
 }
 
