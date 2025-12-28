@@ -6,6 +6,38 @@
   <component name="ChangeListManager">
     <list default="true" id="62cbf729-6c90-4842-813d-60faa3ed4eda" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Config/CorsConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Config/CorsConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Config/PasswordConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Config/PasswordConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/AuthController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/BookingController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/BookingController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/CalendarController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/CalendarController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/GuestHouseController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Controller/GuestHouseController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/AuthService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/BookingService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/BookingService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/CalendarService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/CalendarService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/EmailService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/EmailService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/GuestHouseService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/GuestHouseService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/JwtService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/Service/JwtService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/AuthResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/AuthResponseDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/CalendarDayStatusDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/CalendarDayStatusDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/ForgetPasswordRequestDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/ForgetPasswordRequestDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/LoginRequestDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/LoginRequestDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/ResetPasswordRequestDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/ResetPasswordRequestDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/SignupRequestDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/dto/SignupRequestDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/Booking.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/Booking.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/BookingStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/BookingStatus.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/Department.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/Department.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/FacilityType.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/FacilityType.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/GuestHouse.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/GuestHouse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/PasswordResetToken.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/PasswordResetToken.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/Role.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/Role.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/entity/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/BookingRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/BookingRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/GuestHouseRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/GuestHouseRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/PasswordResetTokenRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/PasswordResetTokenRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/resource/booking/repository/UserRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -21,6 +53,12 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="PUSH_TAGS">
+      <GitPushTagMode>
+        <option name="argument" value="--follow-tags" />
+        <option name="title" value="Current Branch" />
+      </GitPushTagMode>
+    </option>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
         <entry key="$PROJECT_DIR$" value="Bookingss" />
@@ -119,7 +157,8 @@
       <workItem from="1766590873937" duration="8693000" />
       <workItem from="1766772825508" duration="49000" />
       <workItem from="1766772974169" duration="88000" />
-      <workItem from="1766812347580" duration="417000" />
+      <workItem from="1766812347580" duration="1278000" />
+      <workItem from="1766913172583" duration="1436000" />
     </task>
     <servers />
   </component>

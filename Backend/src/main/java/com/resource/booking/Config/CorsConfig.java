@@ -15,4 +15,5 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedHeaders("*") // Allow all headers
                 .allowCredentials(true); // Allow cookies/auth
     }
+
 }

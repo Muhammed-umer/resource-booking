@@ -3,7 +3,7 @@ package com.resource.booking.dto;
 import lombok.Getter;
 
 @Getter
-public class LoginRequestDTO {
+public class  LoginRequestDTO {
     private String email;
     private String password;
 
@@ -18,4 +18,5 @@ public class LoginRequestDTO {
         this.password = password;
         return password;
     }
+
 }
