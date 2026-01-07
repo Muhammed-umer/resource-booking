@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import AuthSwitch from "./auth/AuthSwitch";
-
-
 import UserLayout from "./layouts/UserLayout";
-import SeminarAdmin from "./admin/SeminarAdmin";
-import ResourceAdmin from "./admin/ResourceAdmin";
+import AdminLayout from "./layouts/AdminLayout";
+// import SeminarAdmin from "./admin/SeminarAdmin";
+// import ResourceAdmin from "./admin/ResourceAdmin";
+
 
 const App = () => {
   return (
@@ -19,9 +19,10 @@ const App = () => {
           <Route path="/user/*" element={<UserLayout />} />
 
           {/* Admin Dashboards */}
-          <Route path="/admin/seminar" element={<SeminarAdmin />} />
-          <Route path="/admin/resource" element={<ResourceAdmin />} />
-
+          {/* <Route path="/admin/seminar" element={<SeminarAdmin />} />
+          <Route path="/admin/resource" element={<ResourceAdmin />} /> */}
+          <Route path="/admin/*" element={<AdminLayout />} /> 
+          
         </Routes>
       </BrowserRouter>
   );
