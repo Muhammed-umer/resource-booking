@@ -3,5 +3,4 @@ package com.resource.booking.entity;
     PENDING,
     APPROVED,
     REJECTED,
-
 }

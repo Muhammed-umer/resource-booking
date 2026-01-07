@@ -20,5 +20,4 @@ const ResourceAdmin = () => {
         </div>
     );
 };
-
 export default ResourceAdmin;

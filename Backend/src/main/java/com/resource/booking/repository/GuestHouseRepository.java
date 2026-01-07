@@ -22,6 +22,5 @@ public interface GuestHouseRepository extends JpaRepository<GuestHouse, Long> {
                 LocalDate toDate,
                 LocalDate fromDate
         );
-
 }
 

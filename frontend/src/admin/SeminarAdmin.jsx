@@ -21,5 +21,4 @@ const SeminarAdmin = () => {
         </div>
     );
 };
-
 export default SeminarAdmin;

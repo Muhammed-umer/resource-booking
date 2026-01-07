@@ -126,6 +126,7 @@ body {
     }
 }
 
+
 .animate-bounce-slow {
     animation: bounceSlow 2s ease-in-out infinite;
 }

@@ -32,6 +32,5 @@ import java.util.Date;
                     .signWith(key, SignatureAlgorithm.HS256) // ✅ Correct
                     .compact();
         }
-
     }
 

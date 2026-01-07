@@ -33,6 +33,5 @@ const UserLayout = () => {
             </div>
         </div>
     );
-
 };
 export default UserLayout;

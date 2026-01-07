@@ -53,5 +53,4 @@ public class GuestHouseController {
     public ResponseEntity<GuestHouse> rejectBooking(@PathVariable Long id) {
         return ResponseEntity.ok(guestHouseService.rejectBooking(id));
     }
-
 }

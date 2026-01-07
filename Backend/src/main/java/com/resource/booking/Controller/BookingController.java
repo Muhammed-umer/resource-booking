@@ -64,6 +64,5 @@ public class BookingController {
     public ResponseEntity<?> rejectBooking(@PathVariable Long id, @RequestParam String facilityType) {
         Booking rejected = bookingService.rejectBooking(id);
         return ResponseEntity.ok(rejected);
-
     }
 }

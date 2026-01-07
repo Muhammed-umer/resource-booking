@@ -46,5 +46,4 @@ const AuthSwitch = () => {
         </div>
     );
 };
-
 export default AuthSwitch;

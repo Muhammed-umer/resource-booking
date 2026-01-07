@@ -3,5 +3,4 @@ package com.resource.booking.entity;
         SEMINAR_HALL,
         AUDITORIUM,
         GUEST_HOUSE,
-
 }

@@ -2,6 +2,7 @@ import axios from "axios";
 import { API_BASE_URL } from "../Config";
 import { getToken } from "../utils/auth";
 
+
 const authHeader = () => ({
     headers: { Authorization: `Bearer ${getToken()}` },
 });

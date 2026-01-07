@@ -24,5 +24,4 @@ public class CalendarController {
             @RequestParam LocalDate endDate) {
         return calendarService.getCalendarStatus(startDate, endDate);
     }
-
 }
