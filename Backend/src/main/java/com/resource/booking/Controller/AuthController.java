@@ -2,11 +2,9 @@ package com.resource.booking.Controller;
 
 import com.resource.booking.Service.AuthService;
 import com.resource.booking.dto.*;
+import com.resource.booking.entity.Role;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -18,35 +16,45 @@ public class AuthController {
         this.authService = authService;
     }
 
+    // ❌ SIGNUP DISABLED
     @PostMapping("/signup")
     public String signup(@RequestBody SignupRequestDTO dto) {
-        return authService.signup(dto);
+        return "Signup is disabled. Use predefined login credentials.";
     }
 
-    @PostMapping("/login")
-    public AuthResponseDTO login(@RequestBody LoginRequestDTO dto) {
-        return authService.login(dto);
+    // ================= USER LOGIN =================
+    @PostMapping("/login/user")
+    public AuthResponseDTO userLogin(@RequestBody LoginRequestDTO dto) {
+        return authService.login(dto, Role.USER);
     }
+
+    // ================= ADMIN SEMINAR LOGIN =================
+    @PostMapping("/login/admin-seminar")
+    public AuthResponseDTO adminSeminarLogin(@RequestBody LoginRequestDTO dto) {
+        return authService.login(dto, Role.ADMIN_SEMINAR);
+    }
+
+    // ================= ADMIN RESOURCE LOGIN =================
+    @PostMapping("/login/admin-resource")
+    public AuthResponseDTO adminResourceLogin(@RequestBody LoginRequestDTO dto) {
+        return authService.login(dto, Role.ADMIN_RESOURCE);
+    }
+
+    // ================= FORGOT PASSWORD =================
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(
-            @RequestBody ForgetPasswordRequestDTO dto) {
-
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgetPasswordRequestDTO dto) {
         authService.forgotPassword(dto.getEmail());
         return ResponseEntity.ok("Password reset link sent to email");
     }
 
+    // ================= RESET PASSWORD =================
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(
-            @RequestBody ResetPasswordRequestDTO dto) {
-
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequestDTO dto) {
         authService.resetPassword(
                 dto.getToken(),
                 dto.getNewPassword(),
                 dto.getConfirmPassword()
         );
-
         return ResponseEntity.ok("Password reset successful");
-   }
+    }
 }
-
-

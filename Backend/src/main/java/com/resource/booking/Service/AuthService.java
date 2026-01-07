@@ -1,19 +1,16 @@
 package com.resource.booking.Service;
-import com.resource.booking.dto.LoginRequestDTO;
-import com.resource.booking.dto.SignupRequestDTO;
-import com.resource.booking.dto.AuthResponseDTO;
-import com.resource.booking.dto.ForgetPasswordRequestDTO;
-import com.resource.booking.dto.ResetPasswordRequestDTO;
-import com.resource.booking.entity.PasswordResetToken;
-import com.resource.booking.entity.Role;
-import com.resource.booking.entity.User;
+
+import com.resource.booking.dto.*;
+import com.resource.booking.entity.*;
 import com.resource.booking.repository.PasswordResetTokenRepository;
 import com.resource.booking.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.UUID;
+
 @Service
 public class AuthService {
 
@@ -35,87 +32,80 @@ public class AuthService {
         this.emailService = emailService;
     }
 
-    public String signup(SignupRequestDTO dto) {
+    // ================= LOGIN =================
+    public AuthResponseDTO login(LoginRequestDTO dto, Role expectedRole) {
 
-        if (userRepo.findByEmail(dto.email).isPresent())
-            throw new RuntimeException("Email already exists");
-
-        User user = new User();
-        user.setEmail(dto.email);
-        user.setPassword(passwordEncoder.encode(dto.password));
-        user.setRole(dto.role);
-
-        // ===== ROLE BASED LOGIC =====
-        if (dto.role == Role.USER) {
-
-            if (dto.department == null)
-                throw new RuntimeException("Department is required for USER");
-
-            user.setDepartment(dto.department);
-            user.setName(null); // USER-ku name theva illa
-        }
-        else if (dto.role == Role.ADMIN_SEMINAR || dto.role == Role.ADMIN_RESOURCE) {
-
-            user.setDepartment(null); // ADMIN-ku department vendam
-            user.setName(dto.name);   // optional admin name
-        }
-        else {
-            throw new RuntimeException("Invalid role");
-        }
-
-        userRepo.save(user);
-        return "User registered successfully";
-    }
-
-
-    public AuthResponseDTO login(LoginRequestDTO dto){
         User user = userRepo.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email"));
 
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword()))
             throw new RuntimeException("Invalid password");
 
+        // 🔴 PREVENT ROLE SWITCHING
+        if (user.getRole() != expectedRole)
+            throw new RuntimeException("Access denied for this login");
+
+        // 🔒 USER EMAIL VALIDATION
+        if (expectedRole == Role.USER) {
+            switch (user.getDepartment()) {
+                case CSE -> validate(dto, "cse@example.com");
+                case EEE -> validate(dto, "eee@example.com");
+                case ECE -> validate(dto, "ece@example.com");
+                case CIVIL -> validate(dto, "civil@example.com");
+                case MECHANICAL -> validate(dto, "mech@example.com");
+                case AUTOMOBILE -> validate(dto, "auto@example.com");
+                case IT -> validate(dto, "it@example.com");
+            }
+        }
+
+        // 🔒 ADMIN EMAIL VALIDATION
+        if (expectedRole == Role.ADMIN_SEMINAR)
+            validate(dto, "seminaradmin@example.com");
+
+        if (expectedRole == Role.ADMIN_RESOURCE)
+            validate(dto, "resourceadmin@example.com");
+
         String token = jwtService.generateToken(user);
 
         AuthResponseDTO response = new AuthResponseDTO();
         response.token = token;
         response.role = user.getRole().name();
-
         return response;
     }
 
+    private void validate(LoginRequestDTO dto, String allowedEmail) {
+        if (!dto.getEmail().equals(allowedEmail))
+            throw new RuntimeException("Invalid email for this role");
+    }
+
+    // ================= FORGOT PASSWORD =================
     public void forgotPassword(String email) {
 
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 🔥 DELETE existing token (VERY IMPORTANT)
         passwordResetTokenRepository.findByUser(user)
                 .ifPresent(passwordResetTokenRepository::delete);
 
-        // generate new token
         String token = UUID.randomUUID().toString();
 
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUser(user);
-        resetToken.setExpiryDate(
-                new Date(System.currentTimeMillis() + 3600000) // 1 hour
-        );
+        resetToken.setExpiryDate(new Date(System.currentTimeMillis() + 3600000));
 
         passwordResetTokenRepository.save(resetToken);
-
-        String resetLink = "http://localhost:8082/reset-password?token=" + token;
 
         emailService.sendEmail(
                 user.getEmail(),
                 "Reset Password",
-                "Click here to reset password: " + resetLink
+                "Click here to reset password: http://localhost:8082/reset-password?token=" + token
         );
     }
 
-    // ----------------- RESET PASSWORD -----------------
+    // ================= RESET PASSWORD =================
     public void resetPassword(String token, String newPassword, String confirmPassword) {
+
         if (!newPassword.equals(confirmPassword))
             throw new RuntimeException("Passwords do not match");
 
@@ -129,8 +119,33 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepo.save(user);
 
-        // optional: delete token after use
-        passwordResetTokenRepository.delete(resetToken);}
+        passwordResetTokenRepository.delete(resetToken);
+    }
+
+    // ================= CREATE DUMMY USERS =================
+    @PostConstruct
+    public void createDummyUsers() {
+
+        create("cse@example.com", "password123", Role.USER, Department.CSE);
+        create("eee@example.com", "password123", Role.USER, Department.EEE);
+        create("ece@example.com", "password123", Role.USER, Department.ECE);
+        create("civil@example.com", "password123", Role.USER, Department.CIVIL);
+        create("mech@example.com", "password123", Role.USER, Department.MECHANICAL);
+        create("auto@example.com", "password123", Role.USER, Department.AUTOMOBILE);
+        create("it@example.com", "password123", Role.USER, Department.IT);
+
+        create("seminaradmin@example.com", "admin123", Role.ADMIN_SEMINAR, null);
+        create("resourceadmin@example.com", "admin123", Role.ADMIN_RESOURCE, null);
+    }
+
+    private void create(String email, String password, Role role, Department dept) {
+        if (userRepo.findByEmail(email).isEmpty()) {
+            User user = new User();
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setRole(role);
+            user.setDepartment(dept);
+            userRepo.save(user);
+        }
+    }
 }
-
-
