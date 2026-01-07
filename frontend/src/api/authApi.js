@@ -11,6 +11,5 @@ export const loginAdminSeminar = (data) =>
 export const loginAdminResource = (data) =>
     axios.post(`${API_BASE_URL}/auth/login/admin-resource`, data);
 
-
 export const signup = (data) =>
     axios.post(`${API_BASE_URL}/auth/signup`, data);

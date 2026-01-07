@@ -22,5 +22,4 @@ const SeminarAdmin = () => {
     );
 };
 
-
 export default SeminarAdmin;

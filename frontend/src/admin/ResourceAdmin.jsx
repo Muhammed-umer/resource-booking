@@ -21,5 +21,4 @@ const ResourceAdmin = () => {
     );
 };
 
-
 export default ResourceAdmin;

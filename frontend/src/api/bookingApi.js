@@ -19,7 +19,6 @@ export const approveBooking = (id, facilityType) =>
         authHeader()
     );
 
-
 export const rejectBooking = (id, facilityType, adminMessage) =>
     axios.post(
         `${API_BASE_URL}/api/bookings/${id}/reject?facilityType=${facilityType}`,
