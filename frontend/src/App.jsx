@@ -14,11 +14,9 @@ const App = () => {
 
           {/* Auth */}
           <Route path="/" element={<AuthSwitch />} />
-
           {/* User Dashboard */}
           <Route path="/user/*" element={<UserLayout />} />
-
-          {/* Admin Dashboards */}
+            {/* Admin Dashboards */}
           <Route path="/admin/seminar" element={<SeminarAdmin />} />
           <Route path="/admin/resource" element={<ResourceAdmin />} />
 

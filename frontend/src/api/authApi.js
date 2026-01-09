@@ -1,8 +1,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "../Config";
 
-
-// Separate endpoints for user/admin
+// User/Admin login
 export const loginUser = (data) =>
     axios.post(`${API_BASE_URL}/auth/login/user`, data);
 
