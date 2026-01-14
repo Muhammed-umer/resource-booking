@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../config";
+import { getToken } from "../../utils/auth"; // <--- 1. Import getToken
 
 const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
   const [formData, setFormData] = useState({
@@ -16,7 +17,7 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
     checkInTime: "",
     checkOutTime: "",
     roomNumber: 1,
-    requestedBy: "CurrentUser", 
+    requestedBy: "CurrentUser",
   });
 
   useEffect(() => {
@@ -34,10 +35,10 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
     e.preventDefault();
 
     const isGuestHouse = formData.resourceType === "Guest House";
-    
-    const baseUrl = isGuestHouse 
-      ? `${API_BASE_URL}/guesthouse/book` 
-      : `${API_BASE_URL}/api/bookings`;
+
+    const baseUrl = isGuestHouse
+        ? `${API_BASE_URL}/guesthouse/book`
+        : `${API_BASE_URL}/api/bookings`;
 
     let payload = {};
     if (isGuestHouse) {
@@ -68,7 +69,10 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
     try {
       const response = await fetch(baseUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${getToken()}` // <--- 2. Add Token Here
+        },
         body: JSON.stringify(payload),
       });
 
@@ -90,116 +94,116 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
   const isGuestHouse = formData.resourceType === "Guest House";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
 
-      {/* Modal Container */}
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 animate-[fadeIn_0.3s_ease-out] max-h-[90vh] overflow-y-auto overflow-x-hidden no-scrollbar">
-        
-        {/* Header - Uses Primary Color */}
-        <div className="bg-primary px-6 py-4 flex justify-between items-center sticky top-0 z-20 text-white shadow-md">
-          <h3 className="font-semibold text-lg">Book {formData.resourceType || "Resource"}</h3>
-          <button onClick={onClose} className="hover:text-gray-200 text-2xl leading-none">&times;</button>
-        </div>
+        {/* Modal Container */}
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 animate-[fadeIn_0.3s_ease-out] max-h-[90vh] overflow-y-auto overflow-x-hidden no-scrollbar">
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          
-          {/* Resource Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Resource Type</label>
-            <select
-              name="resourceType"
-              value={formData.resourceType}
-              onChange={handleChange}
-              disabled={!!selectedResource}
-              className={`w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary ${selectedResource ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+          {/* Header - Uses Primary Color */}
+          <div className="bg-primary px-6 py-4 flex justify-between items-center sticky top-0 z-20 text-white shadow-md">
+            <h3 className="font-semibold text-lg">Book {formData.resourceType || "Resource"}</h3>
+            <button onClick={onClose} className="hover:text-gray-200 text-2xl leading-none">&times;</button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
+            {/* Resource Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Resource Type</label>
+              <select
+                  name="resourceType"
+                  value={formData.resourceType}
+                  onChange={handleChange}
+                  disabled={!!selectedResource}
+                  className={`w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary ${selectedResource ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+              >
+                <option value="" disabled>Select a resource...</option>
+                <option value="Auditorium">Auditorium</option>
+                <option value="Seminar Hall">Seminar Hall</option>
+                <option value="Guest House">Guest House</option>
+              </select>
+            </div>
+
+            {/* Dynamic Fields */}
+            {!isGuestHouse && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
+                    <input required type="text" name="eventName" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. Annual Day" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <input required type="text" name="department" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. CSE" />
+                  </div>
+                </>
+            )}
+
+            {isGuestHouse && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name</label>
+                    <input required type="text" name="guestName" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                      <input required type="tel" name="phoneNumber" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
+                      <input required type="number" name="roomNumber" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" min="1" />
+                    </div>
+                  </div>
+                </>
+            )}
+
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <input required type="date" name="fromDate" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <input required type="date" name="toDate" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+            </div>
+
+            {/* Times */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {isGuestHouse ? "Check-In Time" : "Start Time"}
+                </label>
+                <input required type="time" name={isGuestHouse ? "checkInTime" : "startTime"} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {isGuestHouse ? "Check-Out Time" : "End Time"}
+                </label>
+                <input required type="time" name={isGuestHouse ? "checkOutTime" : "endTime"} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+            </div>
+
+            {isGuestHouse && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit</label>
+                  <textarea name="purpose" onChange={handleChange} rows="2" className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"></textarea>
+                </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+                type="submit"
+                className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-primary-dark shadow-lg mt-4 transition-transform active:scale-95"
             >
-              <option value="" disabled>Select a resource...</option>
-              <option value="Auditorium">Auditorium</option>
-              <option value="Seminar Hall">Seminar Hall</option>
-              <option value="Guest House">Guest House</option>
-            </select>
-          </div>
+              Confirm Booking
+            </button>
 
-          {/* Dynamic Fields */}
-          {!isGuestHouse && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
-                <input required type="text" name="eventName" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. Annual Day" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                <input required type="text" name="department" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. CSE" />
-              </div>
-            </>
-          )}
-
-          {isGuestHouse && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name</label>
-                <input required type="text" name="guestName" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                  <input required type="tel" name="phoneNumber" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
-                  <input required type="number" name="roomNumber" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" min="1" />
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-              <input required type="date" name="fromDate" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-              <input required type="date" name="toDate" onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-          </div>
-
-          {/* Times */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {isGuestHouse ? "Check-In Time" : "Start Time"}
-              </label>
-              <input required type="time" name={isGuestHouse ? "checkInTime" : "startTime"} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                 {isGuestHouse ? "Check-Out Time" : "End Time"}
-              </label>
-              <input required type="time" name={isGuestHouse ? "checkOutTime" : "endTime"} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-          </div>
-
-          {isGuestHouse && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit</label>
-              <textarea name="purpose" onChange={handleChange} rows="2" className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"></textarea>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-primary-dark shadow-lg mt-4 transition-transform active:scale-95"
-          >
-            Confirm Booking
-          </button>
-
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
   );
 };
 

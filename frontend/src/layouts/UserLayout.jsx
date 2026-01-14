@@ -28,6 +28,7 @@ const UserLayout = () => {
                         <Route path="/" element={<Home />} />
                         <Route path="/waiting-request" element={<Request />} />
                         <Route path="/history" element={<History />} />
+
                     </Routes>
                 </main>
             </div>

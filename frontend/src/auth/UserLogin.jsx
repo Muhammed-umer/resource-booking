@@ -8,7 +8,15 @@ const UserLogin = () => {
     const submit = async () => {
         try {
             const res = await loginUser(data);
-            saveAuth(res.data.token, res.data.role);
+
+            const { token, role, department } = res.data;
+
+            saveAuth(
+                res.data.token,
+                res.data.role,
+                res.data.department
+            );
+
             window.location.href = "/user";
         } catch (err) {
             console.error(err);
@@ -23,14 +31,18 @@ const UserLogin = () => {
             <input
                 className="w-full mb-4 px-4 py-2 border rounded-full focus:outline-none"
                 placeholder="Email"
-                onChange={(e)=>setData({...data,email:e.target.value})}
+                onChange={(e) =>
+                    setData({ ...data, email: e.target.value })
+                }
             />
 
             <input
                 type="password"
                 className="w-full mb-6 px-4 py-2 border rounded-full focus:outline-none"
                 placeholder="Password"
-                onChange={(e)=>setData({...data,password:e.target.value})}
+                onChange={(e) =>
+                    setData({ ...data, password: e.target.value })
+                }
             />
 
             <button
@@ -42,4 +54,5 @@ const UserLogin = () => {
         </>
     );
 };
+
 export default UserLogin;

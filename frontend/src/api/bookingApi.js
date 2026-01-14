@@ -1,28 +1,18 @@
-import axios from "axios";
-import { API_BASE_URL } from "../Config";
-import { getToken } from "../utils/auth";
+import axiosInstance from "./axiosInstance";
 
+export const createBooking = (data) => {
+    return axiosInstance.post("/api/bookings", data);
+};
 
-const authHeader = () => ({
-    headers: { Authorization: `Bearer ${getToken()}` },
-});
-
+export const getMyBookings = () => {
+    return axiosInstance.get("/api/bookings/history");
+};
+// Admin APIs
 export const getPendingBookings = (facilityType) =>
-    axios.get(
-        `${API_BASE_URL}/api/bookings/pending?facilityType=${facilityType}`,
-        authHeader()
-    );
+    axiosInstance.get(`/api/bookings/pending?facilityType=${facilityType}`);
 
 export const approveBooking = (id, facilityType) =>
-    axios.post(
-        `${API_BASE_URL}/api/bookings/${id}/approve?facilityType=${facilityType}`,
-        {},
-        authHeader()
-    );
+    axiosInstance.post(`/api/bookings/${id}/approve?facilityType=${facilityType}`);
 
 export const rejectBooking = (id, facilityType, adminMessage) =>
-    axios.post(
-        `${API_BASE_URL}/api/bookings/${id}/reject?facilityType=${facilityType}`,
-        { adminMessage },
-        authHeader()
-    );
+    axiosInstance.post(`/api/bookings/${id}/reject?facilityType=${facilityType}`, { adminMessage });

@@ -2,6 +2,7 @@ package com.resource.booking.Config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer; // <--- 1. Import Customizer
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,6 +26,7 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults()) // <--- 2. Enable CORS here
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -35,7 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/signup",
                                 "/auth/login",
-                                "/auth/login/**",         // <-- allow /auth/login/user, /auth/login/admin-seminar, etc
+                                "/auth/login/**",
                                 "/auth/forgot-password",
                                 "/auth/reset-password"
                         ).permitAll()

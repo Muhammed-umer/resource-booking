@@ -19,8 +19,7 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    // Make sure this is SAME as in JwtService
-    private final String SECRET_KEY = "my-super-long-secret-key-for-jwt-12345-my-super-long-secret";
+    private static final String SECRET_KEY = "my-super-long-secret-key-for-jwt-12345-my-super-long-secret";
 
     @Override
     protected void doFilterInternal(
@@ -29,7 +28,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 1️⃣ Get token from header
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
@@ -37,37 +35,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = header.substring(7); // Remove "Bearer "
+        String token = header.substring(7);
 
-        // 2️⃣ Parse JWT and get claims
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY.getBytes())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(SECRET_KEY.getBytes())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
 
-        String email = claims.getSubject();
-        String role = claims.get("roles", String.class); // e.g., "USER"
+            String email = claims.getSubject();
+            String role = claims.get("roles", String.class); // e.g., "ROLE_USER"
 
-        // 3️⃣ Fix for Spring Security: add "ROLE_" prefix
-        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
 
-        // 4️⃣ Build Authentication object
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        email,
-                        null,
-                        List.of(authority) // Add list of authorities
-                );
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    email,
+                    null,
+                    List.of(authority)
+            );
+            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-        authentication.setDetails(
-                new WebAuthenticationDetailsSource().buildDetails(request)
-        );
+            SecurityContextHolder.getContext().setAuthentication(auth);
 
-        // 5️⃣ Set in SecurityContext
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (Exception e) {
+            // Optional: Log invalid token
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
+            return;
+        }
 
-        // 6️⃣ Continue filter chain
         filterChain.doFilter(request, response);
     }
 }

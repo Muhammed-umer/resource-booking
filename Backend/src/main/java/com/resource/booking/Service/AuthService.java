@@ -41,11 +41,11 @@ public class AuthService {
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword()))
             throw new RuntimeException("Invalid password");
 
-        // 🔴 PREVENT ROLE SWITCHING
+        // ❌ Prevent role switching
         if (user.getRole() != expectedRole)
             throw new RuntimeException("Access denied for this login");
 
-        // 🔒 USER EMAIL VALIDATION
+        // USER EMAIL VALIDATION
         if (expectedRole == Role.USER) {
             switch (user.getDepartment()) {
                 case CSE -> validate(dto, "cse@example.com");
@@ -58,7 +58,7 @@ public class AuthService {
             }
         }
 
-        // 🔒 ADMIN EMAIL VALIDATION
+        // ADMIN VALIDATION
         if (expectedRole == Role.ADMIN_SEMINAR)
             validate(dto, "seminaradmin@example.com");
 
@@ -70,6 +70,9 @@ public class AuthService {
         AuthResponseDTO response = new AuthResponseDTO();
         response.token = token;
         response.role = user.getRole().name();
+        response.department =
+                user.getDepartment() != null ? user.getDepartment().name() : null;
+
         return response;
     }
 
