@@ -9,12 +9,12 @@ const UserLogin = () => {
         try {
             const res = await loginUser(data);
 
-            const { token, role, department } = res.data;
-
+            // ✅ FIX: Save the email you just typed!
             saveAuth(
                 res.data.token,
                 res.data.role,
-                res.data.department
+                res.data.department,
+                data.email // <--- ADD THIS
             );
 
             window.location.href = "/user";
@@ -27,24 +27,17 @@ const UserLogin = () => {
     return (
         <>
             <h2 className="text-2xl font-bold text-center mb-6">User Login</h2>
-
             <input
                 className="w-full mb-4 px-4 py-2 border rounded-full focus:outline-none"
                 placeholder="Email"
-                onChange={(e) =>
-                    setData({ ...data, email: e.target.value })
-                }
+                onChange={(e) => setData({ ...data, email: e.target.value })}
             />
-
             <input
                 type="password"
                 className="w-full mb-6 px-4 py-2 border rounded-full focus:outline-none"
                 placeholder="Password"
-                onChange={(e) =>
-                    setData({ ...data, password: e.target.value })
-                }
+                onChange={(e) => setData({ ...data, password: e.target.value })}
             />
-
             <button
                 onClick={submit}
                 className="w-full bg-[#676765] text-white py-2 rounded-full hover:bg-gray-700 transition"

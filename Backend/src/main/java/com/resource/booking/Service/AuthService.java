@@ -58,12 +58,12 @@ public class AuthService {
             }
         }
 
-        // ADMIN VALIDATION
+        // ✅ UPDATED ADMIN VALIDATION
         if (expectedRole == Role.ADMIN_SEMINAR)
-            validate(dto, "seminaradmin@example.com");
+            validate(dto, "semAndAuditAdmin@example.com"); // Updated
 
         if (expectedRole == Role.ADMIN_RESOURCE)
-            validate(dto, "resourceadmin@example.com");
+            validate(dto, "guesthouseAdmin@example.com"); // Updated
 
         String token = jwtService.generateToken(user);
 
@@ -81,9 +81,8 @@ public class AuthService {
             throw new RuntimeException("Invalid email for this role");
     }
 
-    // ================= FORGOT PASSWORD =================
+    // ================= FORGOT / RESET PASSWORD (No Changes) =================
     public void forgotPassword(String email) {
-
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -91,12 +90,10 @@ public class AuthService {
                 .ifPresent(passwordResetTokenRepository::delete);
 
         String token = UUID.randomUUID().toString();
-
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUser(user);
         resetToken.setExpiryDate(new Date(System.currentTimeMillis() + 3600000));
-
         passwordResetTokenRepository.save(resetToken);
 
         emailService.sendEmail(
@@ -106,9 +103,7 @@ public class AuthService {
         );
     }
 
-    // ================= RESET PASSWORD =================
     public void resetPassword(String token, String newPassword, String confirmPassword) {
-
         if (!newPassword.equals(confirmPassword))
             throw new RuntimeException("Passwords do not match");
 
@@ -121,14 +116,12 @@ public class AuthService {
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepo.save(user);
-
         passwordResetTokenRepository.delete(resetToken);
     }
 
     // ================= CREATE DUMMY USERS =================
     @PostConstruct
     public void createDummyUsers() {
-
         create("cse@example.com", "password123", Role.USER, Department.CSE);
         create("eee@example.com", "password123", Role.USER, Department.EEE);
         create("ece@example.com", "password123", Role.USER, Department.ECE);
@@ -137,8 +130,9 @@ public class AuthService {
         create("auto@example.com", "password123", Role.USER, Department.AUTOMOBILE);
         create("it@example.com", "password123", Role.USER, Department.IT);
 
-        create("seminaradmin@example.com", "admin123", Role.ADMIN_SEMINAR, null);
-        create("resourceadmin@example.com", "admin123", Role.ADMIN_RESOURCE, null);
+        // ✅ UPDATED ADMIN CREDENTIALS
+        create("semAndAuditAdmin@example.com", "admin123", Role.ADMIN_SEMINAR, null);
+        create("guesthouseAdmin@example.com", "admin123", Role.ADMIN_RESOURCE, null);
     }
 
     private void create(String email, String password, Role role, Department dept) {

@@ -1,6 +1,7 @@
 package com.resource.booking.repository;
 
 import com.resource.booking.entity.Booking;
+import com.resource.booking.entity.BookingStatus;
 import com.resource.booking.entity.FacilityType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -39,4 +40,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     List<Booking> findByDepartment(String department);
+
+
+    List<Booking> findByFacilityTypeAndBookingStatus(FacilityType facilityType, BookingStatus bookingStatus);
 }

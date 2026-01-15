@@ -36,20 +36,21 @@ public class BookingController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN_SEMINAR') or hasRole('ADMIN_RESOURCE')")
+    // Allow Seminar Admin to see all bookings (to filter for Audi/Sem)
+    @PreAuthorize("hasRole('ADMIN_SEMINAR')")
     @GetMapping
     public List<Booking> getAllBookings() {
         return bookingService.getAllBookings();
     }
 
-    @PreAuthorize("hasRole('ADMIN_SEMINAR') or hasRole('ADMIN_RESOURCE')")
+    @PreAuthorize("hasRole('ADMIN_SEMINAR')")
     @GetMapping("/facility/{type}")
     public List<Booking> getByFacility(@PathVariable String type) {
         return bookingService.getBookingsByFacility(type);
     }
 
-    @PreAuthorize("(hasRole('ADMIN_SEMINAR') and #facilityType == 'SEMINAR_HALL') or " +
-            "(hasRole('ADMIN_RESOURCE') and (#facilityType == 'AUDITORIUM' or #facilityType == 'GUEST_HOUSE'))")
+    // ✅ UPDATED: Seminar Admin manages BOTH Seminar Hall AND Auditorium
+    @PreAuthorize("hasRole('ADMIN_SEMINAR') and (#facilityType == 'SEMINAR_HALL' or #facilityType == 'AUDITORIUM')")
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approveBooking(
             @PathVariable Long id,
@@ -58,8 +59,8 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.approveBooking(id));
     }
 
-    @PreAuthorize("(hasRole('ADMIN_SEMINAR') and #facilityType == 'SEMINAR_HALL') or " +
-            "(hasRole('ADMIN_RESOURCE') and (#facilityType == 'AUDITORIUM' or #facilityType == 'GUEST_HOUSE'))")
+    // ✅ UPDATED: Seminar Admin manages BOTH Seminar Hall AND Auditorium
+    @PreAuthorize("hasRole('ADMIN_SEMINAR') and (#facilityType == 'SEMINAR_HALL' or #facilityType == 'AUDITORIUM')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<?> rejectBooking(
             @PathVariable Long id,
@@ -78,5 +79,11 @@ public class BookingController {
         String email = authentication.getName();
         List<Booking> history = bookingService.getUserBookingHistory(email);
         return ResponseEntity.ok(history);
+    }
+
+    @PreAuthorize("hasRole('ADMIN_SEMINAR')")
+    @GetMapping("/pending")
+    public List<Booking> getPending(@RequestParam String facilityType) {
+        return bookingService.getPendingBookings(facilityType);
     }
 }

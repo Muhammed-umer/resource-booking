@@ -69,4 +69,14 @@ public class GuestHouseService {
         booking.setStatus(BookingStatus.REJECTED);
         return guestHouseRepository.save(booking);
     }
+
+    // For Users
+    public List<GuestHouse> getUserGuestHouseHistory(String email) {
+        return guestHouseRepository.findByRequestedBy(email);
+    }
+
+    // For Admins
+    public List<GuestHouse> getPendingBookings() {
+        return guestHouseRepository.findByStatus(BookingStatus.PENDING);
+    }
 }

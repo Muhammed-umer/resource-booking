@@ -18,7 +18,9 @@ const UserLayout = () => {
             />
 
             <div className="flex flex-1 overflow-hidden relative">
+                {/* ✅ PASSED role="USER" */}
                 <Sidebar
+                    role="USER"
                     isMobileOpen={isMobileSidebarOpen}
                     closeMobileSidebar={() => setIsMobileSidebarOpen(false)}
                 />
@@ -28,7 +30,6 @@ const UserLayout = () => {
                         <Route path="/" element={<Home />} />
                         <Route path="/waiting-request" element={<Request />} />
                         <Route path="/history" element={<History />} />
-
                     </Routes>
                 </main>
             </div>

@@ -10,8 +10,13 @@ import java.util.List;
 @Repository
 public interface GuestHouseRepository extends JpaRepository<GuestHouse, Long> {
 
-        // ⿡ Find bookings by status (Admin filter)
+        // 1. For Admins: Find specific status (e.g., PENDING)
         List<GuestHouse> findByStatus(BookingStatus status);
+
+        // 2. For Users: Find their own history
+        List<GuestHouse> findByRequestedBy(String requestedBy);
+
+
 
         // ⿢ Find bookings by room number
         List<GuestHouse> findByRoomNumber(int roomNumber);

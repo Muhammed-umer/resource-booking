@@ -90,4 +90,10 @@ public class BookingService {
     public List<Booking> getUserBookingHistory(String email) {
         return bookingRepository.findByRequestedByOrderByFromDateDesc(email);
     }
+
+    public List<Booking> getPendingBookings(String facilityTypeStr) {
+        FacilityType type = FacilityType.valueOf(facilityTypeStr);
+        // Use the method we just created in Step 1.1
+        return bookingRepository.findByFacilityTypeAndBookingStatus(type, BookingStatus.PENDING);
+    }
 }

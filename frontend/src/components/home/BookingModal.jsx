@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../config";
-import { getToken } from "../../utils/auth"; // <--- 1. Import getToken
+import { getToken, getEmail } from "../../utils/auth"; // ✅ Fixed: Single import line
 
 const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
   const [formData, setFormData] = useState({
@@ -35,6 +35,8 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
     e.preventDefault();
 
     const isGuestHouse = formData.resourceType === "Guest House";
+    // ✅ Get the actual logged-in user's email
+    const userEmail = getEmail(); 
 
     const baseUrl = isGuestHouse
         ? `${API_BASE_URL}/guesthouse/book`
@@ -51,7 +53,7 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
         checkInTime: formData.checkInTime + ":00",
         checkOutTime: formData.checkOutTime + ":00",
         roomNumber: parseInt(formData.roomNumber),
-        requestedBy: formData.requestedBy,
+        requestedBy: userEmail, // ✅ USE REAL EMAIL
       };
     } else {
       payload = {
@@ -62,7 +64,7 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
         toDate: formData.toDate,
         startTime: formData.startTime + ":00",
         endTime: formData.endTime + ":00",
-        requestedBy: formData.requestedBy,
+        requestedBy: userEmail, // ✅ USE REAL EMAIL
       };
     }
 
@@ -71,7 +73,7 @@ const BookingModal = ({ isOpen, onClose, selectedResource, onShowStatus }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${getToken()}` // <--- 2. Add Token Here
+          "Authorization": `Bearer ${getToken()}`
         },
         body: JSON.stringify(payload),
       });
