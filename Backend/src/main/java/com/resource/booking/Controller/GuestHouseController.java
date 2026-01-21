@@ -1,7 +1,7 @@
 package com.resource.booking.Controller;
 
-import com.resource.booking.entity.GuestHouse;
 import com.resource.booking.Service.GuestHouseService;
+import com.resource.booking.entity.GuestHouse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

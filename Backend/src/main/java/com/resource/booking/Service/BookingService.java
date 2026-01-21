@@ -13,13 +13,17 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public BookingService(
             BookingRepository bookingRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            EmailService emailService
+
     ) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
     // ---------------- Create Booking ----------------
@@ -53,7 +57,26 @@ public class BookingService {
         }
 
         booking.setBookingStatus(BookingStatus.PENDING);
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+
+        try {
+            String adminEmail = "pavithramalini0612@gmail.com";
+            String subject = "New Booking Request: " + savedBooking.getFacilityType();
+            String body = "Hello Admin,\n\nA new booking request has been received.\n" +
+                    "User: " + email + "\n" +
+                    "Facility: " + savedBooking.getFacilityType() + "\n" +
+                    "Event: " + savedBooking.getEventName() + "\n" +
+                    "Date: " + savedBooking.getFromDate() + " to " + savedBooking.getToDate();
+
+            emailService.sendEmail(adminEmail, subject, body);
+        } catch (Exception e) {
+            // This prevents the whole booking from failing if the email server is down
+            System.out.println("Email failed to send, but booking was saved: " + e.getMessage());
+        }
+
+        // 3. Return the variable
+        return savedBooking;
     }
 
     // ---------------- Get All Bookings ----------------

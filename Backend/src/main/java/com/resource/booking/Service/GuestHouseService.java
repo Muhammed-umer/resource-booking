@@ -11,9 +11,12 @@ import java.util.List;
 public class GuestHouseService {
 
     private final GuestHouseRepository guestHouseRepository;
+    private final EmailService emailService;
 
-    public GuestHouseService(GuestHouseRepository guestHouseRepository) {
+
+    public GuestHouseService(GuestHouseRepository guestHouseRepository, EmailService emailService) {
         this.guestHouseRepository = guestHouseRepository;
+        this.emailService = emailService;
     }
 
     // ---------------- Save Booking (With Detailed Error) ----------------
@@ -42,7 +45,29 @@ public class GuestHouseService {
 
         // 3. Save booking
         guestHouse.setStatus(BookingStatus.PENDING);
-        return guestHouseRepository.save(guestHouse);
+
+        // --- FIX: Create the variable clearly here ---
+        GuestHouse savedGH = guestHouseRepository.save(guestHouse);
+
+        // 4. Send Email to GuestHouse Admin
+        try {
+            String adminEmail = "bindhujaa30@gmail.com";
+            String subject = "New Guest House Booking Request";
+            String body = "Hello Admin,\n\nA new Guest House booking has been requested.\n" +
+                    "User: " + savedGH.getRequestedBy() + "\n" +
+                    "Guest Name: " + savedGH.getGuestName() + "\n" +
+                    "Room Number: " + savedGH.getRoomNumber() + "\n" +
+                    "Dates: " + savedGH.getFromDate() + " to " + savedGH.getToDate();
+
+            emailService.sendEmail(adminEmail, subject, body);
+        } catch (Exception e) {
+            // Log error so booking still works even if email fails
+            System.err.println("Email notification failed: " + e.getMessage());
+        }
+
+        // 5. Return the saved variable
+        return savedGH;
+
     }
 
     // ---------------- Get All Bookings ----------------
