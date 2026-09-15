@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 import { createRequestAction, type ActionResult } from "@/app/actions/bookings";
 import { TimeField } from "@/components/home/time-field";
+import { countDays, formatLongDate, formatTime12h } from "@/lib/bookings/view";
 import type { Department } from "@/lib/db/schema";
 import { FACILITY_OPTIONS, type BookableFacility } from "@/lib/facilities";
 
@@ -48,11 +49,22 @@ export function BookingModal({
   );
   const handledRef = useRef<ActionResult | null>(null);
 
-  // Tracks the chosen start date so the end date cannot precede it.
+  // Form state mirrored here only to drive the live summary and the date
+  // limits; the server still validates everything from the submitted fields.
   const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [multiDay, setMultiDay] = useState(false);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
 
   useEffect(() => {
-    if (isOpen) setFromDate("");
+    if (isOpen) {
+      setFromDate("");
+      setToDate("");
+      setMultiDay(false);
+      setStartTime("");
+      setEndTime("");
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -68,6 +80,16 @@ export function BookingModal({
   const today = todayISO();
   const needsDepartment = facilityType !== "" && !isGuestHouse;
   const missingDepartment = needsDepartment && !department;
+
+  // Halls: a single-day booking submits toDate = fromDate; the guest house
+  // always has separate check-in and check-out dates.
+  const showToDate = isGuestHouse || multiDay;
+  const effectiveToDate = showToDate ? toDate : fromDate;
+  const spanDays =
+    fromDate && effectiveToDate && effectiveToDate >= fromDate
+      ? countDays(fromDate, effectiveToDate)
+      : 0;
+  const timeOrder = startTime && endTime ? (startTime < endTime ? "ok" : "bad") : "incomplete";
 
   return (
     <div
@@ -249,13 +271,44 @@ export function BookingModal({
             </>
           )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {!isGuestHouse && (
+            <div>
+              <span className="mb-1 block text-sm font-medium text-gray-700">Duration</span>
+              <div role="radiogroup" aria-label="Duration" className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
+                {[
+                  { value: false, label: "Single day" },
+                  { value: true, label: "Multiple days" },
+                ].map((option) => {
+                  const active = multiDay === option.value;
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => {
+                        setMultiDay(option.value);
+                        if (!option.value) setToDate("");
+                      }}
+                      className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                        active ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className={`grid grid-cols-1 gap-4 ${showToDate ? "sm:grid-cols-2" : ""}`}>
             <div>
               <label
                 htmlFor="fromDate"
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                {isGuestHouse ? "Check-in date" : "From date"}
+                {isGuestHouse ? "Check-in date" : showToDate ? "First day" : "Date"}
               </label>
               <input
                 id="fromDate"
@@ -263,44 +316,111 @@ export function BookingModal({
                 type="date"
                 required
                 min={today}
-                onChange={(event) => setFromDate(event.target.value)}
+                value={fromDate}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setFromDate(next);
+                  if (toDate && toDate < next) setToDate(next);
+                }}
                 className={inputClass}
               />
             </div>
-            <div>
-              <label
-                htmlFor="toDate"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                {isGuestHouse ? "Check-out date" : "To date"}
-              </label>
-              <input
-                id="toDate"
-                name="toDate"
-                type="date"
-                required
-                min={fromDate || today}
-                className={inputClass}
-              />
-            </div>
+            {showToDate ? (
+              <div>
+                <label
+                  htmlFor="toDate"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  {isGuestHouse ? "Check-out date" : "Last day"}
+                </label>
+                <input
+                  id="toDate"
+                  name="toDate"
+                  type="date"
+                  required
+                  min={fromDate || today}
+                  value={toDate}
+                  onChange={(event) => setToDate(event.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            ) : (
+              // Single day: the server still receives a full range.
+              <input type="hidden" name="toDate" value={fromDate} />
+            )}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <TimeField
-              key={isGuestHouse ? "checkInTime" : "startTime"}
-              id={isGuestHouse ? "checkInTime" : "startTime"}
-              name={isGuestHouse ? "checkInTime" : "startTime"}
-              label={isGuestHouse ? "Check-in time" : "Start time"}
-              required={!isGuestHouse}
-            />
-            <TimeField
-              key={isGuestHouse ? "checkOutTime" : "endTime"}
-              id={isGuestHouse ? "checkOutTime" : "endTime"}
-              name={isGuestHouse ? "checkOutTime" : "endTime"}
-              label={isGuestHouse ? "Check-out time" : "End time"}
-              required={!isGuestHouse}
-            />
+          <div>
+            {!isGuestHouse && (
+              <p className="mb-2 text-xs text-gray-500">
+                {multiDay
+                  ? "The hall is reserved for these hours on each day. It is not held overnight between days."
+                  : "Hours the hall is reserved on that day."}
+              </p>
+            )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <TimeField
+                key={isGuestHouse ? "checkInTime" : "startTime"}
+                id={isGuestHouse ? "checkInTime" : "startTime"}
+                name={isGuestHouse ? "checkInTime" : "startTime"}
+                label={isGuestHouse ? "Check-in time" : multiDay ? "Start time (each day)" : "Start time"}
+                required={!isGuestHouse}
+                onChange={setStartTime}
+              />
+              <TimeField
+                key={isGuestHouse ? "checkOutTime" : "endTime"}
+                id={isGuestHouse ? "checkOutTime" : "endTime"}
+                name={isGuestHouse ? "checkOutTime" : "endTime"}
+                label={isGuestHouse ? "Check-out time" : multiDay ? "End time (each day)" : "End time"}
+                required={!isGuestHouse}
+                onChange={setEndTime}
+              />
+            </div>
+            {!isGuestHouse && timeOrder === "bad" && (
+              <p role="alert" className="mt-2 text-xs text-error-dark">
+                End time must be after start time. For an event that runs past midnight, book each day separately.
+              </p>
+            )}
           </div>
+
+          {/* Live summary so a multi-day request reads back the way it will be booked. */}
+          {spanDays > 0 && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-gray-700">
+              <p className="text-xs font-semibold tracking-wide text-primary uppercase">You are requesting</p>
+              {isGuestHouse ? (
+                <p className="mt-1">
+                  <span className="font-semibold">{formatLongDate(fromDate)}</span>
+                  {spanDays > 1 && (
+                    <>
+                      {" "}to <span className="font-semibold">{formatLongDate(effectiveToDate)}</span>
+                      <span className="text-gray-500"> · {spanDays - 1} night{spanDays - 1 === 1 ? "" : "s"}</span>
+                    </>
+                  )}
+                  {spanDays === 1 && <span className="text-gray-500"> · check-out is the same day</span>}
+                </p>
+              ) : (
+                <>
+                  <p className="mt-1">
+                    <span className="font-semibold">{formatLongDate(fromDate)}</span>
+                    {spanDays > 1 && (
+                      <>
+                        {" "}to <span className="font-semibold">{formatLongDate(effectiveToDate)}</span>
+                        <span className="text-gray-500"> · {spanDays} days</span>
+                      </>
+                    )}
+                  </p>
+                  {startTime && endTime && timeOrder === "ok" && (
+                    <p className="mt-0.5">
+                      <span className="font-semibold">
+                        {formatTime12h(startTime)} – {formatTime12h(endTime)}
+                      </span>
+                      {spanDays > 1 && <span className="text-gray-500"> on each of the {spanDays} days</span>}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {isGuestHouse && (
             <div>

@@ -27,6 +27,7 @@ import {
   InvalidStateError,
   rejectGuestHouseBooking,
 } from "../lib/bookings/service";
+import { countDays, formatDateRange, formatSchedule } from "../lib/bookings/view";
 import {
   createBookingSchema,
   createGuestHouseBookingSchema,
@@ -392,6 +393,80 @@ async function main() {
       guestDay?.entries.some((e) => e.facilityType === "GUEST_HOUSE" && e.title.startsWith("Room ")) === true,
   );
   check("a free day lists no bookings", freeDay?.entries.length === 0, `got ${freeDay?.entries.length}`);
+
+  // ----------------------------------------------------------- multi-day
+  console.log("\nMulti-day bookings (same hours on each day)");
+
+  const twoDay = await createBooking(
+    {
+      facilityType: "SEMINAR_HALL",
+      eventName: "Placement drive",
+      department: "CSE",
+      fromDate: day(8),
+      toDate: day(9),
+      startTime: "10:00:00",
+      endTime: "17:00:00",
+    },
+    STUDENT,
+  );
+  await approveBooking(twoDay.bookingId, "SEMINAR_HALL", SEMINAR_ADMIN);
+  const multiDays = await getCalendarStatus(day(8), day(10));
+  check(
+    "both days of a 2-day booking are marked, the day after is free",
+    multiDays[0]?.seminarHall.status === "BOOKED" &&
+      multiDays[1]?.seminarHall.status === "BOOKED" &&
+      multiDays[2]?.seminarHall.status === "AVAILABLE",
+  );
+  await expectConflict(
+    "the second day's hours are blocked too",
+    () =>
+      createBooking(
+        {
+          facilityType: "SEMINAR_HALL",
+          eventName: "Clash",
+          department: "IT",
+          fromDate: day(9),
+          toDate: day(9),
+          startTime: "15:00:00",
+          endTime: "18:00:00",
+        },
+        STUDENT,
+      ),
+    "Already booked by CSE for 'Placement drive'",
+  );
+  const eveningOnDay2 = await createBooking(
+    {
+      facilityType: "SEMINAR_HALL",
+      eventName: "Evening slot",
+      department: "IT",
+      fromDate: day(9),
+      toDate: day(9),
+      startTime: "17:00:00",
+      endTime: "19:00:00",
+    },
+    STUDENT,
+  );
+  check("outside those hours on day 2 is still free (not held overnight)", eveningOnDay2.bookingId > 0);
+
+  check("countDays is inclusive", countDays("2026-09-19", "2026-09-20") === 2 && countDays("2026-09-19", "2026-09-19") === 1);
+  check(
+    "date ranges compress within a month and across months",
+    formatDateRange("2026-09-19", "2026-09-20") === "19 – 20 Sept 2026" &&
+      formatDateRange("2026-09-28", "2026-10-02") === "28 Sept – 2 Oct 2026",
+    `${formatDateRange("2026-09-19", "2026-09-20")} | ${formatDateRange("2026-09-28", "2026-10-02")}`,
+  );
+  const hallSchedule = formatSchedule({ facilityType: "AUDITORIUM", fromDate: "2026-09-19", toDate: "2026-09-20", startTime: "10:00:00", endTime: "17:00:00" });
+  check(
+    "a multi-day hall booking reads '2 days' and 'each day'",
+    hallSchedule.dates.endsWith("· 2 days") && hallSchedule.time === "10:00 AM – 5:00 PM each day",
+    `${hallSchedule.dates} | ${hallSchedule.time}`,
+  );
+  const staySchedule = formatSchedule({ facilityType: "GUEST_HOUSE", fromDate: "2026-10-02", toDate: "2026-10-04", startTime: "15:00:00", endTime: "11:00:00" });
+  check(
+    "a guest house stay reads in nights with check-in/out",
+    staySchedule.dates.endsWith("· 2 nights") && staySchedule.time === "Check-in 3:00 PM · Check-out 11:00 AM",
+    `${staySchedule.dates} | ${staySchedule.time}`,
+  );
 
   // -------------------------------------------------------- cancellation
   console.log("\nCancelling approved bookings");

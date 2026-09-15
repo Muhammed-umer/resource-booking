@@ -19,11 +19,14 @@ export function TimeField({
   name,
   label,
   required = true,
+  onChange,
 }: {
   id: string;
   name: string;
   label: string;
   required?: boolean;
+  /** Called with the 24-hour `HH:MM` value ("" until an hour is chosen). */
+  onChange?: (value: string) => void;
 }) {
   const [hour, setHour] = useState("");
   const [minute, setMinute] = useState("00");
@@ -36,6 +39,20 @@ export function TimeField({
     value = `${String(h24).padStart(2, "0")}:${minute}`;
   }
 
+  const update = (next: { hour?: string; minute?: string; period?: "AM" | "PM" }) => {
+    const nh = next.hour ?? hour;
+    const nm = next.minute ?? minute;
+    const np = next.period ?? period;
+    if (next.hour !== undefined) setHour(nh);
+    if (next.minute !== undefined) setMinute(nm);
+    if (next.period !== undefined) setPeriod(np);
+    if (!onChange) return;
+    if (nh === "") return onChange("");
+    const h = Number(nh);
+    const h24 = np === "AM" ? h % 12 : (h % 12) + 12;
+    onChange(`${String(h24).padStart(2, "0")}:${nm}`);
+  };
+
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-sm font-medium text-gray-700">
@@ -47,7 +64,7 @@ export function TimeField({
           aria-label={`${label} hour`}
           required={required}
           value={hour}
-          onChange={(event) => setHour(event.target.value)}
+          onChange={(event) => update({ hour: event.target.value })}
           className={selectClass}
         >
           <option value="" disabled>
@@ -63,7 +80,7 @@ export function TimeField({
         <select
           aria-label={`${label} minute`}
           value={minute}
-          onChange={(event) => setMinute(event.target.value)}
+          onChange={(event) => update({ minute: event.target.value })}
           className={selectClass}
         >
           {MINUTES.map((m) => (
@@ -76,7 +93,7 @@ export function TimeField({
         <select
           aria-label={`${label} AM or PM`}
           value={period}
-          onChange={(event) => setPeriod(event.target.value as "AM" | "PM")}
+          onChange={(event) => update({ period: event.target.value as "AM" | "PM" })}
           className={selectClass}
         >
           <option value="AM">AM</option>

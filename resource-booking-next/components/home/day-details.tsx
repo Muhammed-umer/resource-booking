@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
 import type { CalendarDayStatus, CalendarEntry } from "@/lib/bookings/service";
-import { formatDateRange, formatTimeRange } from "@/lib/bookings/view";
+import { countDays, formatSchedule } from "@/lib/bookings/view";
 import type { FacilityType } from "@/lib/db/schema";
 import { FACILITY_LABEL } from "@/lib/facilities";
 
@@ -27,10 +27,9 @@ function longDate(iso: string) {
 function EntryCard({ entry, date }: { entry: CalendarEntry; date: string }) {
   const isGuestHouse = entry.facilityType === "GUEST_HOUSE";
   const spansDays = entry.fromDate !== entry.toDate;
-  const time =
-    entry.startTime && entry.endTime
-      ? formatTimeRange(entry.startTime, entry.endTime)
-      : "Whole day";
+  const schedule = formatSchedule(entry);
+  const dayIndex = countDays(entry.fromDate, date);
+  const time = schedule.time === "—" ? "Whole day" : schedule.time;
 
   return (
     <li className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
@@ -54,17 +53,17 @@ function EntryCard({ entry, date }: { entry: CalendarEntry; date: string }) {
         </div>
         <div className="flex gap-2">
           <dt className="w-24 shrink-0 text-gray-400">
-            {isGuestHouse ? "Check-in" : "Time"}
+            {isGuestHouse ? "Times" : "Time"}
           </dt>
           <dd className="font-medium text-gray-700">{time}</dd>
         </div>
         <div className="flex gap-2">
           <dt className="w-24 shrink-0 text-gray-400">Dates</dt>
           <dd className="font-medium text-gray-700">
-            {formatDateRange(entry.fromDate, entry.toDate)}
+            {schedule.dates}
             {spansDays && (
               <span className="ml-1 text-xs font-normal text-gray-400">
-                (includes {formatDateRange(date, date)})
+                (day {dayIndex} of {countDays(entry.fromDate, entry.toDate)})
               </span>
             )}
           </dd>

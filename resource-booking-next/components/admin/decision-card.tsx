@@ -5,11 +5,7 @@ import { useActionState } from "react";
 import { decideBookingAction } from "@/app/actions/bookings";
 import { StatusBadge } from "@/components/status-badge";
 import { FACILITY_LABEL } from "@/lib/facilities";
-import {
-  formatDateRange,
-  formatTimeRange,
-  type RequestRow,
-} from "@/lib/bookings/view";
+import { formatSchedule, type RequestRow } from "@/lib/bookings/view";
 
 /** One pending request with approve / reject controls and an optional note. */
 export function DecisionCard({ row }: { row: RequestRow }) {
@@ -17,6 +13,7 @@ export function DecisionCard({ row }: { row: RequestRow }) {
     decideBookingAction,
     null,
   );
+  const schedule = formatSchedule(row);
 
   return (
     <li className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -40,17 +37,13 @@ export function DecisionCard({ row }: { row: RequestRow }) {
           <dt className="text-xs tracking-wide text-gray-400 uppercase">
             Dates
           </dt>
-          <dd className="mt-0.5 text-gray-700 tabular-nums">
-            {formatDateRange(row.fromDate, row.toDate)}
-          </dd>
+          <dd className="mt-0.5 text-gray-700 tabular-nums">{schedule.dates}</dd>
         </div>
         <div>
           <dt className="text-xs tracking-wide text-gray-400 uppercase">
             Time
           </dt>
-          <dd className="mt-0.5 text-gray-700 tabular-nums">
-            {formatTimeRange(row.startTime, row.endTime)}
-          </dd>
+          <dd className="mt-0.5 text-gray-700 tabular-nums">{schedule.time}</dd>
         </div>
         <div>
           <dt className="text-xs tracking-wide text-gray-400 uppercase">

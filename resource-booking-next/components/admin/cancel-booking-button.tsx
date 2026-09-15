@@ -4,11 +4,7 @@ import { useActionState, useEffect, useId, useState } from "react";
 
 import { cancelBookingAction } from "@/app/actions/bookings";
 import { FACILITY_LABEL } from "@/lib/facilities";
-import {
-  formatDateRange,
-  formatTimeRange,
-  type RequestRow,
-} from "@/lib/bookings/view";
+import { formatSchedule, type RequestRow } from "@/lib/bookings/view";
 
 /**
  * "Cancel" for an approved booking. Opens a confirmation box that repeats what
@@ -19,6 +15,7 @@ export function CancelBookingButton({ row }: { row: RequestRow }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(cancelBookingAction, null);
   const reasonId = useId();
+  const schedule = formatSchedule(row);
 
   // Close the box once the cancellation went through; the list re-renders
   // with the new status and the button disappears with it.
@@ -77,10 +74,8 @@ export function CancelBookingButton({ row }: { row: RequestRow }) {
                 {row.detail} · {row.requestedByName}
               </p>
               <p className="mt-1 text-gray-700 tabular-nums">
-                {formatDateRange(row.fromDate, row.toDate)}
-                {row.startTime && row.endTime && (
-                  <> · {formatTimeRange(row.startTime, row.endTime)}</>
-                )}
+                {schedule.dates}
+                {schedule.time !== "—" && <> · {schedule.time}</>}
               </p>
             </div>
 

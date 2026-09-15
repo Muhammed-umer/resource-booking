@@ -1,5 +1,5 @@
 import type { RequestRow } from "@/lib/bookings/view";
-import { formatDateRange, formatTimeRange } from "@/lib/bookings/view";
+import { formatSchedule } from "@/lib/bookings/view";
 import { FACILITY_LABEL } from "@/lib/facilities";
 
 /**
@@ -113,14 +113,15 @@ function layout({
 
 function detailRows(row: RequestRow): [string, string][] {
   const isGuestHouse = row.facilityType === "GUEST_HOUSE";
+  const schedule = formatSchedule(row);
   const rows: [string, string][] = [
     ["Facility", FACILITY_LABEL[row.facilityType]],
     [isGuestHouse ? "Stay" : "Event", row.title],
     [isGuestHouse ? "Purpose" : "Department", row.detail],
-    ["Dates", formatDateRange(row.fromDate, row.toDate)],
+    ["Dates", schedule.dates],
   ];
-  if (row.startTime && row.endTime) {
-    rows.push([isGuestHouse ? "Check-in / out" : "Time", formatTimeRange(row.startTime, row.endTime)]);
+  if (schedule.time !== "—") {
+    rows.push([isGuestHouse ? "Check-in / out" : "Time", schedule.time]);
   }
   rows.push(["Requested by", row.requestedByName]);
   rows.push(["Reference", `#${row.id}`]);

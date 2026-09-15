@@ -1,11 +1,7 @@
 import { CancelBookingButton } from "@/components/admin/cancel-booking-button";
 import { StatusBadge } from "@/components/status-badge";
 import { FACILITY_LABEL } from "@/lib/facilities";
-import {
-  formatDateRange,
-  formatTimeRange,
-  type RequestRow,
-} from "@/lib/bookings/view";
+import { formatSchedule, type RequestRow } from "@/lib/bookings/view";
 
 /**
  * List of requests, used by History, the Overall Report and the admins'
@@ -36,7 +32,9 @@ export function RequestTable({
     <>
       {/* Phones and small tablets */}
       <ul className="flex flex-col gap-3 md:hidden">
-        {rows.map((row) => (
+        {rows.map((row) => {
+          const schedule = formatSchedule(row);
+          return (
           <li
             key={`${row.facilityType}-${row.id}`}
             className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
@@ -55,15 +53,11 @@ export function RequestTable({
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <div>
                 <dt className="text-xs text-gray-400">Dates</dt>
-                <dd className="text-gray-700 tabular-nums">
-                  {formatDateRange(row.fromDate, row.toDate)}
-                </dd>
+                <dd className="text-gray-700 tabular-nums">{schedule.dates}</dd>
               </div>
               <div>
                 <dt className="text-xs text-gray-400">Time</dt>
-                <dd className="text-gray-700 tabular-nums">
-                  {formatTimeRange(row.startTime, row.endTime)}
-                </dd>
+                <dd className="text-gray-700 tabular-nums">{schedule.time}</dd>
               </div>
               {showRequester && (
                 <div>
@@ -91,7 +85,8 @@ export function RequestTable({
               </div>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       {/* Tablets and up */}
@@ -115,7 +110,9 @@ export function RequestTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const schedule = formatSchedule(row);
+              return (
               <tr key={`${row.facilityType}-${row.id}`} className="align-top">
                 <td className="px-4 py-4 font-medium whitespace-nowrap text-gray-700">
                   {FACILITY_LABEL[row.facilityType]}
@@ -135,10 +132,10 @@ export function RequestTable({
                   </td>
                 )}
                 <td className="px-4 py-4 whitespace-nowrap text-gray-600 tabular-nums">
-                  {formatDateRange(row.fromDate, row.toDate)}
+                  {schedule.dates}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-gray-600 tabular-nums">
-                  {formatTimeRange(row.startTime, row.endTime)}
+                  {schedule.time}
                 </td>
                 <td className="px-4 py-4">
                   <StatusBadge status={row.status} />
@@ -152,7 +149,8 @@ export function RequestTable({
                   </td>
                 )}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

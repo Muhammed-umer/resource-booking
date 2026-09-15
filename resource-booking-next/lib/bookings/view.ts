@@ -65,16 +65,85 @@ export function byNewestFirst(a: RequestRow, b: RequestRow): number {
   return b.createdAt.getTime() - a.createdAt.getTime();
 }
 
-export function formatDateRange(from: string, to: string): string {
-  const format = (iso: string) =>
-    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    });
+function parseISO(iso: string): Date {
+  return new Date(`${iso}T00:00:00Z`);
+}
 
-  return from === to ? format(from) : `${format(from)} – ${format(to)}`;
+/** Number of calendar days a range covers, inclusive: 19–20 Sep is 2. */
+export function countDays(from: string, to: string): number {
+  return Math.round((parseISO(to).getTime() - parseISO(from).getTime()) / 86_400_000) + 1;
+}
+
+/**
+ * "19 Sep 2026" for one day; "19 – 20 Sep 2026" when the month is shared,
+ * "28 Sep – 2 Oct 2026" across months, "30 Dec 2026 – 2 Jan 2027" across years.
+ */
+export function formatDateRange(from: string, to: string): string {
+  const a = parseISO(from);
+  const b = parseISO(to);
+  const opts = { timeZone: "UTC" } as const;
+  const full = (d: Date) =>
+    d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", ...opts });
+
+  if (from === to) return full(a);
+  if (a.getUTCFullYear() !== b.getUTCFullYear()) return `${full(a)} – ${full(b)}`;
+  if (a.getUTCMonth() !== b.getUTCMonth()) {
+    const dayMonth = (d: Date) =>
+      d.toLocaleDateString("en-IN", { day: "numeric", month: "short", ...opts });
+    return `${dayMonth(a)} – ${full(b)}`;
+  }
+  return `${a.getUTCDate()} – ${full(b)}`;
+}
+
+/** "Fri, 19 Sep 2026" — used where there is room for the weekday. */
+export function formatLongDate(iso: string): string {
+  return parseISO(iso).toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * The one place that spells out what a booking's dates and times mean.
+ *
+ * Halls: the time window applies on EACH day of the range, so a 19–20 Sep
+ * 10 AM–5 PM booking is 10–5 on both days, never 10 AM Friday through 5 PM
+ * Saturday. Guest house: dates are nights stayed, times are check-in/out.
+ */
+export function formatSchedule(row: Pick<RequestRow, "facilityType" | "fromDate" | "toDate" | "startTime" | "endTime">): {
+  dates: string;
+  time: string;
+  /** Calendar days for halls, nights for the guest house. */
+  span: number;
+  spanLabel: string;
+} {
+  const days = countDays(row.fromDate, row.toDate);
+  const dates = formatDateRange(row.fromDate, row.toDate);
+
+  if (row.facilityType === "GUEST_HOUSE") {
+    const nights = Math.max(days - 1, 1);
+    const spanLabel = `${nights} night${nights === 1 ? "" : "s"}`;
+    const checkIn = row.startTime ? `Check-in ${formatTime12h(row.startTime)}` : null;
+    const checkOut = row.endTime ? `Check-out ${formatTime12h(row.endTime)}` : null;
+    return {
+      dates: `${dates} · ${spanLabel}`,
+      time: [checkIn, checkOut].filter(Boolean).join(" · ") || "—",
+      span: nights,
+      spanLabel,
+    };
+  }
+
+  const spanLabel = `${days} day${days === 1 ? "" : "s"}`;
+  const time = formatTimeRange(row.startTime, row.endTime);
+  return {
+    dates: days === 1 ? dates : `${dates} · ${spanLabel}`,
+    time: days === 1 || time === "—" ? time : `${time} each day`,
+    span: days,
+    spanLabel,
+  };
 }
 
 /** "13:05:00" -> "1:05 PM". Times are stored 24-hour; shown 12-hour everywhere. */
