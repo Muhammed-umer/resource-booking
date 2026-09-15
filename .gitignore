@@ -1,10 +1,9 @@
-# Dependencies
-/node_modules
-
-# Production
-/build
-/dist
-
-# Misc
+# IDE / OS
+.idea/
+.vscode/
 .DS_Store
-.env
+Thumbs.db
+
+# Build output from the old Spring Boot / React code, if a checkout leaves it behind
+target/
+node_modules/

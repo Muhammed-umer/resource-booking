@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email templates</title>
+  <style>
+    body { margin: 0; padding: 32px 16px; background: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; }
+    main { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 6px; }
+    p { color: #6b7280; margin: 0 0 24px; }
+    ol { padding: 0; margin: 0; list-style: none; display: grid; gap: 10px; }
+    li { background: #fff; border-radius: 12px; padding: 14px 18px; box-shadow: 0 2px 8px rgba(15,130,140,.08); }
+    a { color: #0F828C; font-weight: 700; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    small { display: block; color: #6b7280; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Resource Booking — email templates</h1>
+    <p>Rendered with sample data by <code>npm run mail:samples</code>. Open each to review.</p>
+    <ol>
+      <li><a href="01-new-request-auditorium.html">Department → Resource Admin: new auditorium request</a><small>Subject: New Auditorium request #42 from CSE</small></li>
+      <li><a href="02-new-request-seminar-hall.html">Department → Seminar Admin: new seminar hall request</a><small>Subject: New Seminar Hall request #43 from ECE</small></li>
+      <li><a href="03-new-request-guest-house.html">Department → Resource Admin: new guest house request</a><small>Subject: New Guest House request #7 from CSE</small></li>
+      <li><a href="04-approved.html">Admin → Department: request approved (with note)</a><small>Subject: Auditorium request #42 approved</small></li>
+      <li><a href="05-rejected.html">Admin → Department: request rejected (with note)</a><small>Subject: Seminar Hall request #43 rejected</small></li>
+      <li><a href="06-approved-no-note.html">Admin → Department: guest house approved, no note</a><small>Subject: Guest House request #7 approved</small></li>
+      <li><a href="07-cancelled.html">Admin → Department: approved booking cancelled (with reason)</a><small>Subject: Auditorium booking #42 cancelled</small></li>
+      <li><a href="08-cancelled-no-reason.html">Admin → Department: cancelled, no reason given</a><small>Subject: Guest House booking #7 cancelled</small></li>
+    </ol>
+  </main>
+</body>
+</html>

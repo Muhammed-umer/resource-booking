@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+
+.env
+.env.local
+.env*.local
+
+*.tsbuildinfo
+.DS_Store
+npm-debug.log*
+
+# Email previews written when SMTP is not configured
+.mail-outbox/

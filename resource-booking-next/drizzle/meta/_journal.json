@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788799350161,
+      "tag": "0000_cynical_grim_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789389001099,
+      "tag": "0001_zippy_kitty_pryde",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789396233212,
+      "tag": "0002_booking_cancelled",
+      "breakpoints": true
+    }
+  ]
+}

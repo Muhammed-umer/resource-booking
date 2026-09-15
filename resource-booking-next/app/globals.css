@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/*
+ * Palette and motion carried over from the Vite app's tailwind.config.js so the
+ * rewrite looks like the same product.
+ */
+@theme {
+  --color-primary: #0f828c;
+  --color-primary-dark: #095c63;
+  --color-primary-light: #e6f2f3;
+
+  --color-success: #16a34a;
+  --color-success-light: #dcfce7;
+  --color-success-dark: #15803d;
+
+  --color-error: #dc2626;
+  --color-error-light: #fee2e2;
+  --color-error-dark: #b91c1c;
+
+  --color-pending: #d97706;
+  --color-pending-light: #fef3c7;
+
+  --animate-scale-up: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  --animate-shake: shake 0.4s ease-in-out;
+  --animate-draw-check: drawCheck 0.6s 0.3s ease-out forwards;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-shine: shine 3s infinite linear;
+  --animate-fade-in: fadeIn 0.3s ease-out;
+
+  @keyframes scaleUp {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(5px);
+    }
+  }
+
+  @keyframes drawCheck {
+    0% {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes shine {
+    0% {
+      transform: translateX(-150%) skewX(-20deg);
+    }
+    50%,
+    100% {
+      transform: translateX(250%) skewX(-20deg);
+    }
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background-color: var(--color-gray-50);
+  color: var(--color-gray-900);
+}
