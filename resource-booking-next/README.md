@@ -139,6 +139,12 @@ logged and never fails the booking. Set `APP_BASE_URL` for the links in mails.
 2. **The calendar reads the guest house table.** `CalendarService` looked for
    `GUEST_HOUSE` rows in the `bookings` table, which are never written there.
 3. **Pending is its own calendar state.** Days read `BOOKED`, `PENDING` or `AVAILABLE`.
+5. **Each day of a hall booking has its own hours.** A request is a list of day
+   slots (`booking_slots`, migration `0003`, backfilled from existing rows): 10–5 on
+   Friday and 9–1 on Saturday is one request. Conflicts and the calendar read the
+   slots; the `bookings` row keeps first/last day and the first day's hours as a
+   summary, and the old `fromDate/toDate/startTime/endTime` API shape still works
+   (same hours on every day).
 4. **Approved bookings can be cancelled.** A fourth status, `CANCELLED`, added in
    migration `0002`. Only the facility's admin can cancel, only from `APPROVED`, with an
    optional reason the requester sees in History. Cancelled rows never block a slot.

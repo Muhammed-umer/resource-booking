@@ -9,6 +9,7 @@ import {
   text,
   time,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -101,6 +102,29 @@ export const bookings = pgTable(
   ],
 );
 
+/**
+ * The days a hall booking actually occupies, one row per day with that day's
+ * hours. This is the source of truth for conflicts and the calendar; the
+ * from/to/start/end columns on `bookings` are a summary (first day, last day,
+ * first day's hours) kept for sorting and the legacy API shape.
+ */
+export const bookingSlots = pgTable(
+  "booking_slots",
+  {
+    id: serial("id").primaryKey(),
+    bookingId: integer("booking_id")
+      .notNull()
+      .references(() => bookings.bookingId, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    startTime: time("start_time").notNull(),
+    endTime: time("end_time").notNull(),
+  },
+  (table) => [
+    uniqueIndex("booking_slots_booking_date_idx").on(table.bookingId, table.date),
+    index("booking_slots_date_idx").on(table.date),
+  ],
+);
+
 /** Guest house room stays — the GuestHouse entity. */
 export const guestHouseBookings = pgTable(
   "guest_house_bookings",
@@ -140,6 +164,11 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
+export type BookingSlot = typeof bookingSlots.$inferSelect;
+/** One day of a hall booking as carried around the app. */
+export type Slot = { date: string; startTime: string; endTime: string };
+/** A booking together with its days — what every list and mail works from. */
+export type BookingWithSlots = Booking & { slots: Slot[] };
 export type GuestHouseBooking = typeof guestHouseBookings.$inferSelect;
 export type NewGuestHouseBooking = typeof guestHouseBookings.$inferInsert;
 

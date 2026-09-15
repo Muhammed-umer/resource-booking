@@ -120,7 +120,9 @@ function detailRows(row: RequestRow): [string, string][] {
     [isGuestHouse ? "Purpose" : "Department", row.detail],
     ["Dates", schedule.dates],
   ];
-  if (schedule.time !== "—") {
+  if (schedule.showPerDay) {
+    for (const line of schedule.perDay) rows.push([line.day, line.time]);
+  } else if (schedule.time !== "—") {
     rows.push([isGuestHouse ? "Check-in / out" : "Time", schedule.time]);
   }
   rows.push(["Requested by", row.requestedByName]);

@@ -37,4 +37,7 @@ npm run mail:samples # renders the email templates to docs/mail-templates/
   auditorium and guest house.
 - Booking statuses: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`. Only `APPROVED` blocks a hall slot;
   guest house rooms are blocked by `PENDING` and `APPROVED`.
+- A hall booking's days live in `booking_slots` (one row per day with its own hours); that table is the
+  truth for conflicts and the calendar. `bookings.from_date/to_date/start_time/end_time` is only a summary.
+  Truncate `booking_slots` together with `bookings` (foreign key).
 - After any test that creates bookings, leave the `bookings` and `guest_house_bookings` tables empty.

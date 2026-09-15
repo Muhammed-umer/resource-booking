@@ -13,7 +13,7 @@ import { canManageFacility, type SessionUser } from "../lib/auth/policy";
 import { hashPassword, verifyPassword } from "../lib/auth/password";
 import { createSessionToken, verifySessionToken } from "../lib/auth/session";
 import { db } from "../lib/db";
-import { bookings, guestHouseBookings, users } from "../lib/db/schema";
+import { bookings, bookingSlots, guestHouseBookings, users } from "../lib/db/schema";
 import {
   approveBooking,
   approveGuestHouseBooking,
@@ -27,7 +27,7 @@ import {
   InvalidStateError,
   rejectGuestHouseBooking,
 } from "../lib/bookings/service";
-import { countDays, formatDateRange, formatSchedule } from "../lib/bookings/view";
+import { bookingToRow as bookingToRowForTest, countDays, formatDateRange, formatSchedule } from "../lib/bookings/view";
 import {
   createBookingSchema,
   createGuestHouseBookingSchema,
@@ -127,7 +127,7 @@ async function main() {
 
   // ---------------------------------------------------------------- halls
   console.log("\nResetting booking tables…");
-  await db.execute(sql`TRUNCATE ${bookings}, ${guestHouseBookings} RESTART IDENTITY`);
+  await db.execute(sql`TRUNCATE ${bookings}, ${bookingSlots}, ${guestHouseBookings} RESTART IDENTITY`);
 
   console.log("\nSeminar hall / auditorium bookings");
 
@@ -466,6 +466,102 @@ async function main() {
     "a guest house stay reads in nights with check-in/out",
     staySchedule.dates.endsWith("· 2 nights") && staySchedule.time === "Check-in 3:00 PM · Check-out 11:00 AM",
     `${staySchedule.dates} | ${staySchedule.time}`,
+  );
+
+  // -------------------------------------------------- per-day hours
+  console.log("\nPer-day hours (slots)");
+
+  const perDay = await createBooking(
+    {
+      facilityType: "AUDITORIUM",
+      eventName: "Tech fest",
+      department: "ECE",
+      slots: [
+        { date: day(12), startTime: "10:00", endTime: "17:00" },
+        { date: day(13), startTime: "09:00", endTime: "12:00" },
+      ],
+    },
+    STUDENT,
+  );
+  check(
+    "a request can carry different hours per day",
+    perDay.slots.length === 2 &&
+      perDay.slots[0].endTime === "17:00:00" &&
+      perDay.slots[1].endTime === "12:00:00" &&
+      perDay.fromDate === day(12) &&
+      perDay.toDate === day(13),
+    JSON.stringify(perDay.slots),
+  );
+  await approveBooking(perDay.bookingId, "AUDITORIUM", RESOURCE_ADMIN);
+  const afternoonDay2 = await createBooking(
+    {
+      facilityType: "AUDITORIUM",
+      eventName: "Free afternoon",
+      department: "IT",
+      fromDate: day(13),
+      toDate: day(13),
+      startTime: "14:00:00",
+      endTime: "16:00:00",
+    },
+    STUDENT,
+  );
+  check("day 2's afternoon is free because that day ends at noon", afternoonDay2.bookingId > 0);
+  await expectConflict(
+    "day 1's afternoon is still blocked (that day runs to 5 PM)",
+    () =>
+      createBooking(
+        {
+          facilityType: "AUDITORIUM",
+          eventName: "Clash",
+          department: "IT",
+          fromDate: day(12),
+          toDate: day(12),
+          startTime: "14:00:00",
+          endTime: "16:00:00",
+        },
+        STUDENT,
+      ),
+    "Already booked by ECE for 'Tech fest'",
+  );
+  const [slotDay1, slotDay2] = await getCalendarStatus(day(12), day(13));
+  check(
+    "calendar reads each day's own hours",
+    slotDay1?.auditorium.afternoon === "BOOKED" &&
+      slotDay2?.auditorium.morning === "BOOKED" &&
+      slotDay2?.auditorium.afternoon === "PENDING" && // the 2–4 PM request above
+      slotDay2?.entries.find((e) => e.id === perDay.bookingId)?.endTime === "12:00:00",
+    `${slotDay1?.auditorium.afternoon} / ${slotDay2?.auditorium.morning} / ${slotDay2?.auditorium.afternoon}`,
+  );
+  const perDaySchedule = formatSchedule(bookingToRowForTest(perDay));
+  check(
+    "different hours read as 'Varies by day' with a per-day list",
+    perDaySchedule.time === "Varies by day" && perDaySchedule.showPerDay && perDaySchedule.perDay.length === 2,
+    `${perDaySchedule.time} | ${perDaySchedule.perDay.map((l) => l.time).join(", ")}`,
+  );
+  const nonConsecutive = createBookingSchema.safeParse({
+    facilityType: "AUDITORIUM",
+    eventName: "x",
+    department: "CSE",
+    slots: [
+      { date: day(20), startTime: "10:00", endTime: "12:00" },
+      { date: day(22), startTime: "10:00", endTime: "12:00" },
+    ],
+  });
+  check(
+    "days need not be consecutive; summary spans first to last",
+    nonConsecutive.success && nonConsecutive.data.fromDate === day(20) && nonConsecutive.data.toDate === day(22),
+  );
+  check(
+    "the same day twice is rejected",
+    !createBookingSchema.safeParse({
+      facilityType: "AUDITORIUM",
+      eventName: "x",
+      department: "CSE",
+      slots: [
+        { date: day(20), startTime: "10:00", endTime: "12:00" },
+        { date: day(20), startTime: "13:00", endTime: "15:00" },
+      ],
+    }).success,
   );
 
   // -------------------------------------------------------- cancellation

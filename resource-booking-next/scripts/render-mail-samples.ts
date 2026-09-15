@@ -70,6 +70,22 @@ add("02-new-request-seminar-hall.html", "Department → Seminar Admin: new semin
   newRequestEmail(seminar, `${BASE_URL}/admin/seminar`));
 add("03-new-request-guest-house.html", "Department → Resource Admin: new guest house request",
   newRequestEmail(guestHouse, `${BASE_URL}/admin/resource/guest-house`));
+add("03b-new-request-per-day-hours.html", "Department → Resource Admin: 3-day request with different hours per day",
+  newRequestEmail(
+    {
+      ...auditorium,
+      id: 44,
+      title: "Tech Fest 2026",
+      fromDate: "2026-10-08",
+      toDate: "2026-10-10",
+      slots: [
+        { date: "2026-10-08", startTime: "10:00:00", endTime: "17:00:00" },
+        { date: "2026-10-09", startTime: "09:00:00", endTime: "13:00:00" },
+        { date: "2026-10-10", startTime: "14:00:00", endTime: "18:00:00" },
+      ],
+    },
+    `${BASE_URL}/admin/resource`,
+  ));
 add("04-approved.html", "Admin → Department: request approved (with note)",
   decisionEmail({ ...auditorium, status: "APPROVED", decidedBy: "Resource Admin", adminMessage: "Approved. Collect the keys from the office by 9 AM." }, `${BASE_URL}/user/history`));
 add("05-rejected.html", "Admin → Department: request rejected (with note)",

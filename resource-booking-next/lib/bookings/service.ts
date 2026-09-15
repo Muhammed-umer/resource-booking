@@ -1,19 +1,24 @@
 import "server-only";
 
-import { and, desc, eq, gt, gte, inArray, lt, lte } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, lt, lte, or } from "drizzle-orm";
 
 import { FACILITY_LABELS, type SessionUser } from "@/lib/auth/policy";
 import { db } from "@/lib/db";
 import {
   bookings,
+  bookingSlots,
   guestHouseBookings,
   type Booking,
+  type BookingWithSlots,
   type FacilityType,
   type GuestHouseBooking,
+  type Slot,
 } from "@/lib/db/schema";
-import type {
-  CreateBookingInput,
-  CreateGuestHouseBookingInput,
+import {
+  createBookingSchema,
+  type CreateBookingInput,
+  type CreateBookingRequest,
+  type CreateGuestHouseBookingInput,
 } from "@/lib/validation";
 
 /**
@@ -46,40 +51,117 @@ export class InvalidStateError extends Error {
 /** Statuses that occupy a slot on the calendar. Rejected and cancelled rows never do. */
 const LIVE_STATUSES = ["APPROVED", "PENDING"] as const;
 
+function eachDate(startDate: string, endDate: string): string[] {
+  const days: string[] = [];
+  const cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+
+  while (cursor <= end) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return days;
+}
+
 /* ------------------------------------------------------------------ *
  * Seminar hall / auditorium
  * ------------------------------------------------------------------ */
 
+/** Loads the day slots for a set of bookings and attaches them. */
+export async function attachSlots(rows: Booking[]): Promise<BookingWithSlots[]> {
+  if (rows.length === 0) return [];
+  const slotRows = await db
+    .select({
+      bookingId: bookingSlots.bookingId,
+      date: bookingSlots.date,
+      startTime: bookingSlots.startTime,
+      endTime: bookingSlots.endTime,
+    })
+    .from(bookingSlots)
+    .where(inArray(bookingSlots.bookingId, rows.map((row) => row.bookingId)))
+    .orderBy(bookingSlots.date);
+
+  const byBooking = new Map<number, Slot[]>();
+  for (const slot of slotRows) {
+    const list = byBooking.get(slot.bookingId) ?? [];
+    list.push({ date: slot.date, startTime: slot.startTime, endTime: slot.endTime });
+    byBooking.set(slot.bookingId, list);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    // A row with no slot rows (should not happen after the backfill) is
+    // treated as the same hours on each day of its range.
+    slots:
+      byBooking.get(row.bookingId) ??
+      eachDate(row.fromDate, row.toDate).map((date) => ({
+        date,
+        startTime: row.startTime,
+        endTime: row.endTime,
+      })),
+  }));
+}
+
+async function withSlots(row: Booking): Promise<BookingWithSlots> {
+  const [result] = await attachSlots([row]);
+  return result;
+}
+
 /**
- * Overlap check ported from BookingRepository.findConflicts: the date ranges
- * must overlap AND the time windows must overlap, and only APPROVED bookings
- * block a slot — pending requests never block each other.
+ * Overlap check, evolved from BookingRepository.findConflicts: a requested day
+ * clashes when an APPROVED booking occupies the same facility on that date
+ * with overlapping hours. Each day is checked with its own hours, so a
+ * two-day request with 10–5 on Friday and 9–1 on Saturday only clashes with
+ * things inside those windows. Pending requests never block each other.
  */
 export async function findBookingConflicts(
-  input: Pick<
-    CreateBookingInput,
-    "facilityType" | "fromDate" | "toDate" | "startTime" | "endTime"
-  >,
+  input: Pick<CreateBookingInput, "facilityType" | "slots">,
 ): Promise<Booking[]> {
-  return db
-    .select()
-    .from(bookings)
+  if (input.slots.length === 0) return [];
+
+  const rows = await db
+    .select({ booking: bookings })
+    .from(bookingSlots)
+    .innerJoin(bookings, eq(bookingSlots.bookingId, bookings.bookingId))
     .where(
       and(
         eq(bookings.facilityType, input.facilityType),
         eq(bookings.bookingStatus, "APPROVED"),
-        lte(bookings.fromDate, input.toDate),
-        gte(bookings.toDate, input.fromDate),
-        lt(bookings.startTime, input.endTime),
-        gt(bookings.endTime, input.startTime),
+        or(
+          ...input.slots.map((slot) =>
+            and(
+              eq(bookingSlots.date, slot.date),
+              lt(bookingSlots.startTime, slot.endTime),
+              gt(bookingSlots.endTime, slot.startTime),
+            ),
+          ),
+        ),
       ),
-    );
+    )
+    .orderBy(bookingSlots.date, bookingSlots.startTime);
+
+  const seen = new Set<number>();
+  const conflicts: Booking[] = [];
+  for (const { booking } of rows) {
+    if (seen.has(booking.bookingId)) continue;
+    seen.add(booking.bookingId);
+    conflicts.push(booking);
+  }
+  return conflicts;
 }
 
+/**
+ * Create a hall request. Accepts either shape the schema does (per-day slots,
+ * or a date range with one time window) and re-validates, so callers that
+ * already parsed the input pay nothing extra and callers that did not are
+ * still safe.
+ */
 export async function createBooking(
-  input: CreateBookingInput,
+  request: CreateBookingRequest,
   user: SessionUser,
-): Promise<Booking> {
+): Promise<BookingWithSlots> {
+  const input = createBookingSchema.parse(request);
   const conflicts = await findBookingConflicts(input);
 
   if (conflicts.length > 0) {
@@ -89,64 +171,85 @@ export async function createBooking(
     );
   }
 
-  const [created] = await db
-    .insert(bookings)
-    .values({
-      facilityType: input.facilityType,
-      eventName: input.eventName,
-      department: input.department,
-      fromDate: input.fromDate,
-      toDate: input.toDate,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      bookingStatus: "PENDING",
-      requestedBy: user.userId,
-      requestedByName: user.name,
-    })
-    .returning();
+  const created = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(bookings)
+      .values({
+        facilityType: input.facilityType,
+        eventName: input.eventName,
+        department: input.department,
+        fromDate: input.fromDate,
+        toDate: input.toDate,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        bookingStatus: "PENDING",
+        requestedBy: user.userId,
+        requestedByName: user.name,
+      })
+      .returning();
 
-  return created;
+    await tx.insert(bookingSlots).values(
+      input.slots.map((slot) => ({
+        bookingId: row.bookingId,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      })),
+    );
+
+    return row;
+  });
+
+  return { ...created, slots: input.slots };
 }
 
-export async function getAllBookings(): Promise<Booking[]> {
-  return db.select().from(bookings).orderBy(desc(bookings.createdAt));
+export async function getAllBookings(): Promise<BookingWithSlots[]> {
+  return attachSlots(
+    await db.select().from(bookings).orderBy(desc(bookings.createdAt)),
+  );
 }
 
 export async function getBookingsByFacility(
   facilityType: FacilityType,
-): Promise<Booking[]> {
-  return db
-    .select()
-    .from(bookings)
-    .where(eq(bookings.facilityType, facilityType))
-    .orderBy(desc(bookings.createdAt));
+): Promise<BookingWithSlots[]> {
+  return attachSlots(
+    await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.facilityType, facilityType))
+      .orderBy(desc(bookings.createdAt)),
+  );
 }
 
 /** The pending queue an admin sees, limited to the facilities they own. */
 export async function getPendingBookings(
   facilities: readonly FacilityType[],
-): Promise<Booking[]> {
+): Promise<BookingWithSlots[]> {
   const hallFacilities = facilities.filter((f) => f !== "GUEST_HOUSE");
   if (hallFacilities.length === 0) return [];
 
-  return db
-    .select()
-    .from(bookings)
-    .where(
-      and(
-        eq(bookings.bookingStatus, "PENDING"),
-        inArray(bookings.facilityType, hallFacilities),
-      ),
-    )
-    .orderBy(bookings.fromDate, bookings.startTime);
+  return attachSlots(
+    await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.bookingStatus, "PENDING"),
+          inArray(bookings.facilityType, hallFacilities),
+        ),
+      )
+      .orderBy(bookings.fromDate, bookings.startTime),
+  );
 }
 
-export async function getBookingsForUser(userId: string): Promise<Booking[]> {
-  return db
-    .select()
-    .from(bookings)
-    .where(eq(bookings.requestedBy, userId))
-    .orderBy(desc(bookings.createdAt));
+export async function getBookingsForUser(userId: string): Promise<BookingWithSlots[]> {
+  return attachSlots(
+    await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.requestedBy, userId))
+      .orderBy(desc(bookings.createdAt)),
+  );
 }
 
 async function decideBooking(
@@ -155,7 +258,7 @@ async function decideBooking(
   status: "APPROVED" | "REJECTED",
   admin: SessionUser,
   adminMessage?: string,
-): Promise<Booking> {
+): Promise<BookingWithSlots> {
   const [updated] = await db
     .update(bookings)
     .set({
@@ -180,7 +283,7 @@ async function decideBooking(
     );
   }
 
-  return updated;
+  return withSlots(updated);
 }
 
 export function approveBooking(
@@ -188,7 +291,7 @@ export function approveBooking(
   facilityType: FacilityType,
   admin: SessionUser,
   adminMessage?: string,
-): Promise<Booking> {
+): Promise<BookingWithSlots> {
   return decideBooking(bookingId, facilityType, "APPROVED", admin, adminMessage);
 }
 
@@ -197,7 +300,7 @@ export function rejectBooking(
   facilityType: FacilityType,
   admin: SessionUser,
   adminMessage?: string,
-): Promise<Booking> {
+): Promise<BookingWithSlots> {
   return decideBooking(bookingId, facilityType, "REJECTED", admin, adminMessage);
 }
 
@@ -211,7 +314,7 @@ export async function cancelBooking(
   facilityType: FacilityType,
   admin: SessionUser,
   reason?: string,
-): Promise<Booking> {
+): Promise<BookingWithSlots> {
   const [updated] = await db
     .update(bookings)
     .set({
@@ -229,7 +332,7 @@ export async function cancelBooking(
     )
     .returning();
 
-  if (updated) return updated;
+  if (updated) return withSlots(updated);
 
   const [existing] = await db
     .select({ status: bookings.bookingStatus })
@@ -471,19 +574,6 @@ export type CalendarDayStatus = {
 
 const NOON = "12:00:00";
 
-function eachDate(startDate: string, endDate: string): string[] {
-  const days: string[] = [];
-  const cursor = new Date(`${startDate}T00:00:00Z`);
-  const end = new Date(`${endDate}T00:00:00Z`);
-
-  while (cursor <= end) {
-    days.push(cursor.toISOString().slice(0, 10));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-
-  return days;
-}
-
 function escalate(current: DayStatus, incoming: DayStatus): DayStatus {
   if (current === "BOOKED" || incoming === "BOOKED") return "BOOKED";
   if (current === "PENDING" || incoming === "PENDING") return "PENDING";
@@ -509,9 +599,10 @@ function mark(
  * Per-day availability for the whole range, ported from CalendarService and
  * extended with morning/afternoon coverage.
  *
- * A hall booking's time window applies on each day of its date range: it
- * covers the morning if it starts before noon and the afternoon if it ends
- * after noon. Guest house stays have no time window and cover the whole day.
+ * A hall booking is read from its day slots, so each day carries its own
+ * hours: a day covers the morning if its slot starts before noon and the
+ * afternoon if it ends after noon. Guest house stays have no time window and
+ * cover the whole day.
  *
  * Deviations from the Java: guest house status comes from the guest house
  * table (the original looked for GUEST_HOUSE rows in the bookings table, which
@@ -531,17 +622,19 @@ export async function getCalendarStatus(
         department: bookings.department,
         fromDate: bookings.fromDate,
         toDate: bookings.toDate,
-        startTime: bookings.startTime,
-        endTime: bookings.endTime,
+        date: bookingSlots.date,
+        startTime: bookingSlots.startTime,
+        endTime: bookingSlots.endTime,
         bookingStatus: bookings.bookingStatus,
         requestedByName: bookings.requestedByName,
       })
-      .from(bookings)
+      .from(bookingSlots)
+      .innerJoin(bookings, eq(bookingSlots.bookingId, bookings.bookingId))
       .where(
         and(
           inArray(bookings.bookingStatus, LIVE_STATUSES),
-          lte(bookings.fromDate, endDate),
-          gte(bookings.toDate, startDate),
+          gte(bookingSlots.date, startDate),
+          lte(bookingSlots.date, endDate),
         ),
       ),
     db
@@ -574,7 +667,7 @@ export async function getCalendarStatus(
     const entries: CalendarEntry[] = [];
 
     for (const row of hallRows) {
-      if (row.fromDate > date || row.toDate < date) continue;
+      if (row.date !== date) continue;
 
       const status: DayStatus =
         row.bookingStatus === "APPROVED" ? "BOOKED" : "PENDING";

@@ -55,9 +55,22 @@ export function RequestTable({
                 <dt className="text-xs text-gray-400">Dates</dt>
                 <dd className="text-gray-700 tabular-nums">{schedule.dates}</dd>
               </div>
-              <div>
+              <div className={schedule.showPerDay ? "col-span-2" : ""}>
                 <dt className="text-xs text-gray-400">Time</dt>
-                <dd className="text-gray-700 tabular-nums">{schedule.time}</dd>
+                <dd className="text-gray-700 tabular-nums">
+                  {schedule.showPerDay ? (
+                    <ul className="mt-0.5 flex flex-col gap-0.5">
+                      {schedule.perDay.map((line) => (
+                        <li key={line.date} className="flex justify-between gap-3">
+                          <span className="text-gray-500">{line.day}</span>
+                          <span>{line.time}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    schedule.time
+                  )}
+                </dd>
               </div>
               {showRequester && (
                 <div>
@@ -135,7 +148,18 @@ export function RequestTable({
                   {schedule.dates}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-gray-600 tabular-nums">
-                  {schedule.time}
+                  {schedule.showPerDay ? (
+                    <ul className="flex flex-col gap-0.5">
+                      {schedule.perDay.map((line) => (
+                        <li key={line.date}>
+                          <span className="inline-block w-20 text-gray-400">{line.day}</span>
+                          {line.time}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    schedule.time
+                  )}
                 </td>
                 <td className="px-4 py-4">
                   <StatusBadge status={row.status} />

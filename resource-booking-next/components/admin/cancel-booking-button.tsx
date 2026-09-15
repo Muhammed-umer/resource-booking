@@ -75,8 +75,18 @@ export function CancelBookingButton({ row }: { row: RequestRow }) {
               </p>
               <p className="mt-1 text-gray-700 tabular-nums">
                 {schedule.dates}
-                {schedule.time !== "—" && <> · {schedule.time}</>}
+                {!schedule.showPerDay && schedule.time !== "—" && <> · {schedule.time}</>}
               </p>
+              {schedule.showPerDay && (
+                <ul className="mt-1 flex flex-col gap-0.5 text-gray-600 tabular-nums">
+                  {schedule.perDay.map((line) => (
+                    <li key={line.date}>
+                      <span className="inline-block w-20 text-gray-400">{line.day}</span>
+                      {line.time}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <form action={formAction} className="mt-4">

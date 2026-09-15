@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
 import type { CalendarDayStatus, CalendarEntry } from "@/lib/bookings/service";
-import { countDays, formatSchedule } from "@/lib/bookings/view";
+import { countDays, formatSchedule, formatTimeRange } from "@/lib/bookings/view";
 import type { FacilityType } from "@/lib/db/schema";
 import { FACILITY_LABEL } from "@/lib/facilities";
 
@@ -29,7 +29,12 @@ function EntryCard({ entry, date }: { entry: CalendarEntry; date: string }) {
   const spansDays = entry.fromDate !== entry.toDate;
   const schedule = formatSchedule(entry);
   const dayIndex = countDays(entry.fromDate, date);
-  const time = schedule.time === "—" ? "Whole day" : schedule.time;
+  // For halls the entry's start/end are this day's own hours.
+  const time = isGuestHouse
+    ? schedule.time === "—" ? "Whole day" : schedule.time
+    : entry.startTime && entry.endTime
+      ? `${formatTimeRange(entry.startTime, entry.endTime)}${spansDays ? " on this day" : ""}`
+      : "—";
 
   return (
     <li className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">

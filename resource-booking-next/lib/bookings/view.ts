@@ -3,6 +3,7 @@ import type {
   BookingStatus,
   FacilityType,
   GuestHouseBooking,
+  Slot,
 } from "@/lib/db/schema";
 
 /**
@@ -18,6 +19,8 @@ export type RequestRow = {
   toDate: string;
   startTime: string | null;
   endTime: string | null;
+  /** Halls only: each booked day with its own hours. Guest house rows have none. */
+  slots?: Slot[];
   status: BookingStatus;
   requestedByName: string;
   adminMessage: string | null;
@@ -25,7 +28,7 @@ export type RequestRow = {
   createdAt: Date;
 };
 
-export function bookingToRow(booking: Booking): RequestRow {
+export function bookingToRow(booking: Booking & { slots?: Slot[] }): RequestRow {
   return {
     id: booking.bookingId,
     facilityType: booking.facilityType,
@@ -35,6 +38,7 @@ export function bookingToRow(booking: Booking): RequestRow {
     toDate: booking.toDate,
     startTime: booking.startTime,
     endTime: booking.endTime,
+    slots: booking.slots,
     status: booking.bookingStatus,
     requestedByName: booking.requestedByName,
     adminMessage: booking.adminMessage,
@@ -95,6 +99,16 @@ export function formatDateRange(from: string, to: string): string {
   return `${a.getUTCDate()} – ${full(b)}`;
 }
 
+/** "Fri 19 Sept" — compact day label for per-day lists. */
+export function formatDayLabel(iso: string): string {
+  return parseISO(iso).toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
 /** "Fri, 19 Sep 2026" — used where there is room for the weekday. */
 export function formatLongDate(iso: string): string {
   return parseISO(iso).toLocaleDateString("en-IN", {
@@ -106,25 +120,35 @@ export function formatLongDate(iso: string): string {
   });
 }
 
+export type ScheduleLine = { date: string; day: string; time: string };
+
+export type Schedule = {
+  dates: string;
+  time: string;
+  /** Booked days for halls, nights for the guest house. */
+  span: number;
+  spanLabel: string;
+  /** Halls with more than one day: every day with its hours. */
+  perDay: ScheduleLine[];
+  /** True when perDay should be shown instead of `time` (hours differ, or days are not consecutive). */
+  showPerDay: boolean;
+};
+
 /**
  * The one place that spells out what a booking's dates and times mean.
  *
- * Halls: the time window applies on EACH day of the range, so a 19–20 Sep
- * 10 AM–5 PM booking is 10–5 on both days, never 10 AM Friday through 5 PM
- * Saturday. Guest house: dates are nights stayed, times are check-in/out.
+ * Halls: each booked day has its own hours (the slots). When every day has
+ * the same hours the summary reads "10:00 AM – 5:00 PM each day"; otherwise
+ * the per-day list is shown. Guest house: dates are nights stayed, times are
+ * check-in/out.
  */
-export function formatSchedule(row: Pick<RequestRow, "facilityType" | "fromDate" | "toDate" | "startTime" | "endTime">): {
-  dates: string;
-  time: string;
-  /** Calendar days for halls, nights for the guest house. */
-  span: number;
-  spanLabel: string;
-} {
-  const days = countDays(row.fromDate, row.toDate);
+export function formatSchedule(
+  row: Pick<RequestRow, "facilityType" | "fromDate" | "toDate" | "startTime" | "endTime"> & { slots?: Slot[] },
+): Schedule {
   const dates = formatDateRange(row.fromDate, row.toDate);
 
   if (row.facilityType === "GUEST_HOUSE") {
-    const nights = Math.max(days - 1, 1);
+    const nights = Math.max(countDays(row.fromDate, row.toDate) - 1, 1);
     const spanLabel = `${nights} night${nights === 1 ? "" : "s"}`;
     const checkIn = row.startTime ? `Check-in ${formatTime12h(row.startTime)}` : null;
     const checkOut = row.endTime ? `Check-out ${formatTime12h(row.endTime)}` : null;
@@ -133,16 +157,52 @@ export function formatSchedule(row: Pick<RequestRow, "facilityType" | "fromDate"
       time: [checkIn, checkOut].filter(Boolean).join(" · ") || "—",
       span: nights,
       spanLabel,
+      perDay: [],
+      showPerDay: false,
     };
   }
 
+  // Without explicit slots, the row's hours apply to every day of its range.
+  const slots: Slot[] =
+    row.slots && row.slots.length > 0
+      ? row.slots
+      : row.startTime && row.endTime
+        ? Array.from({ length: countDays(row.fromDate, row.toDate) }, (_, i) => {
+            const d = parseISO(row.fromDate);
+            d.setUTCDate(d.getUTCDate() + i);
+            return { date: d.toISOString().slice(0, 10), startTime: row.startTime!, endTime: row.endTime! };
+          })
+        : [];
+
+  const days = slots.length || countDays(row.fromDate, row.toDate);
   const spanLabel = `${days} day${days === 1 ? "" : "s"}`;
-  const time = formatTimeRange(row.startTime, row.endTime);
+  const perDay = slots.map((slot) => ({
+    date: slot.date,
+    day: formatDayLabel(slot.date),
+    time: formatTimeRange(slot.startTime, slot.endTime),
+  }));
+  const uniform = slots.every(
+    (slot) => slot.startTime === slots[0].startTime && slot.endTime === slots[0].endTime,
+  );
+  const consecutive = slots.length === countDays(row.fromDate, row.toDate);
+  const showPerDay = slots.length > 1 && (!uniform || !consecutive);
+
+  const time =
+    slots.length === 0
+      ? "—"
+      : slots.length === 1
+        ? perDay[0].time
+        : uniform
+          ? `${perDay[0].time} each day`
+          : "Varies by day";
+
   return {
     dates: days === 1 ? dates : `${dates} · ${spanLabel}`,
-    time: days === 1 || time === "—" ? time : `${time} each day`,
+    time,
     span: days,
     spanLabel,
+    perDay,
+    showPerDay,
   };
 }
 

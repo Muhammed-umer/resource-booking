@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 import { createRequestAction, type ActionResult } from "@/app/actions/bookings";
 import { TimeField } from "@/components/home/time-field";
-import { countDays, formatLongDate, formatTime12h } from "@/lib/bookings/view";
+import { countDays, formatDayLabel, formatLongDate, formatTime12h } from "@/lib/bookings/view";
 import type { Department } from "@/lib/db/schema";
 import { FACILITY_OPTIONS, type BookableFacility } from "@/lib/facilities";
 
@@ -13,6 +13,17 @@ const inputClass =
 
 const lockedClass =
   "w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-gray-600";
+
+type DayRow = { key: number; date: string; startTime: string; endTime: string };
+
+let nextKey = 1;
+
+/** The day after `iso`, as YYYY-MM-DD. */
+function nextDay(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
 
 /** Today's date in the browser's local timezone, as YYYY-MM-DD. */
 function todayISO(): string {
@@ -56,6 +67,8 @@ export function BookingModal({
   const [multiDay, setMultiDay] = useState(false);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  // Multi-day hall requests: one entry per day, each with its own hours.
+  const [days, setDays] = useState<DayRow[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -64,6 +77,7 @@ export function BookingModal({
       setMultiDay(false);
       setStartTime("");
       setEndTime("");
+      setDays([]);
     }
   }, [isOpen]);
 
@@ -81,15 +95,46 @@ export function BookingModal({
   const needsDepartment = facilityType !== "" && !isGuestHouse;
   const missingDepartment = needsDepartment && !department;
 
-  // Halls: a single-day booking submits toDate = fromDate; the guest house
-  // always has separate check-in and check-out dates.
-  const showToDate = isGuestHouse || multiDay;
+  // Halls, single day: submits toDate = fromDate. Halls, multiple days: the
+  // day list is submitted as JSON in `slots`. Guest house: check-in/out dates.
+  const hallMultiDay = !isGuestHouse && multiDay;
+  const showToDate = isGuestHouse;
   const effectiveToDate = showToDate ? toDate : fromDate;
   const spanDays =
     fromDate && effectiveToDate && effectiveToDate >= fromDate
       ? countDays(fromDate, effectiveToDate)
       : 0;
   const timeOrder = startTime && endTime ? (startTime < endTime ? "ok" : "bad") : "incomplete";
+
+  const sortedDays = [...days].sort((a, b) => a.date.localeCompare(b.date));
+  const dayProblems = sortedDays.map((row, i) => {
+    if (!row.date) return "Pick a date.";
+    if (row.date < today) return "That date has passed.";
+    if (i > 0 && sortedDays[i - 1].date === row.date) return "Same day listed twice.";
+    if (!row.startTime || !row.endTime) return "Pick start and end times.";
+    if (row.startTime >= row.endTime) return "End time must be after start time.";
+    return null;
+  });
+  const daysValid = days.length > 0 && dayProblems.every((p) => p === null);
+  const slotsJSON = daysValid
+    ? JSON.stringify(sortedDays.map(({ date, startTime, endTime }) => ({ date, startTime, endTime })))
+    : "";
+
+  const addDay = () => {
+    const last = sortedDays[sortedDays.length - 1];
+    setDays((current) => [
+      ...current,
+      {
+        key: nextKey++,
+        date: last?.date ? nextDay(last.date) : "",
+        startTime: last?.startTime ?? "",
+        endTime: last?.endTime ?? "",
+      },
+    ]);
+  };
+  const updateDay = (key: number, patch: Partial<DayRow>) =>
+    setDays((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+  const removeDay = (key: number) => setDays((current) => current.filter((row) => row.key !== key));
 
   return (
     <div
@@ -288,7 +333,9 @@ export function BookingModal({
                       aria-checked={active}
                       onClick={() => {
                         setMultiDay(option.value);
-                        if (!option.value) setToDate("");
+                        if (option.value && days.length === 0) {
+                          setDays([{ key: nextKey++, date: fromDate, startTime, endTime }]);
+                        }
                       }}
                       className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
                         active ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -302,13 +349,14 @@ export function BookingModal({
             </div>
           )}
 
+          {!hallMultiDay && (
           <div className={`grid grid-cols-1 gap-4 ${showToDate ? "sm:grid-cols-2" : ""}`}>
             <div>
               <label
                 htmlFor="fromDate"
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                {isGuestHouse ? "Check-in date" : showToDate ? "First day" : "Date"}
+                {isGuestHouse ? "Check-in date" : "Date"}
               </label>
               <input
                 id="fromDate"
@@ -331,7 +379,7 @@ export function BookingModal({
                   htmlFor="toDate"
                   className="mb-1 block text-sm font-medium text-gray-700"
                 >
-                  {isGuestHouse ? "Check-out date" : "Last day"}
+                  Check-out date
                 </label>
                 <input
                   id="toDate"
@@ -349,21 +397,19 @@ export function BookingModal({
               <input type="hidden" name="toDate" value={fromDate} />
             )}
           </div>
+          )}
 
+          {!hallMultiDay && (
           <div>
             {!isGuestHouse && (
-              <p className="mb-2 text-xs text-gray-500">
-                {multiDay
-                  ? "The hall is reserved for these hours on each day. It is not held overnight between days."
-                  : "Hours the hall is reserved on that day."}
-              </p>
+              <p className="mb-2 text-xs text-gray-500">Hours the hall is reserved on that day.</p>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TimeField
                 key={isGuestHouse ? "checkInTime" : "startTime"}
                 id={isGuestHouse ? "checkInTime" : "startTime"}
                 name={isGuestHouse ? "checkInTime" : "startTime"}
-                label={isGuestHouse ? "Check-in time" : multiDay ? "Start time (each day)" : "Start time"}
+                label={isGuestHouse ? "Check-in time" : "Start time"}
                 required={!isGuestHouse}
                 onChange={setStartTime}
               />
@@ -371,7 +417,7 @@ export function BookingModal({
                 key={isGuestHouse ? "checkOutTime" : "endTime"}
                 id={isGuestHouse ? "checkOutTime" : "endTime"}
                 name={isGuestHouse ? "checkOutTime" : "endTime"}
-                label={isGuestHouse ? "Check-out time" : multiDay ? "End time (each day)" : "End time"}
+                label={isGuestHouse ? "Check-out time" : "End time"}
                 required={!isGuestHouse}
                 onChange={setEndTime}
               />
@@ -382,9 +428,115 @@ export function BookingModal({
               </p>
             )}
           </div>
+          )}
 
-          {/* Live summary so a multi-day request reads back the way it will be booked. */}
-          {spanDays > 0 && (
+          {hallMultiDay && (
+            <div>
+              <div className="mb-2 flex items-end justify-between gap-3">
+                <div>
+                  <span className="block text-sm font-medium text-gray-700">Days and hours</span>
+                  <p className="text-xs text-gray-500">Each day has its own start and end time.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addDay}
+                  className="shrink-0 rounded-lg border border-primary/40 px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary hover:text-white"
+                >
+                  + Add a day
+                </button>
+              </div>
+
+              {days.length === 0 && (
+                <p className="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
+                  No days yet. Use “Add a day” to list each day you need.
+                </p>
+              )}
+
+              <ol className="flex flex-col gap-3">
+                {sortedDays.map((row, index) => {
+                  const problem = dayProblems[index];
+                  return (
+                    <li
+                      key={row.key}
+                      className="rounded-xl border border-gray-200 bg-gray-50/60 p-3"
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                          Day {index + 1}
+                          {row.date && (
+                            <span className="ml-2 font-normal normal-case text-gray-400">{formatDayLabel(row.date)}</span>
+                          )}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeDay(row.key)}
+                          aria-label={`Remove day ${index + 1}`}
+                          className="rounded px-2 py-0.5 text-xs font-semibold text-gray-400 hover:bg-error-light hover:text-error-dark"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1.3fr_1.3fr]">
+                        <div>
+                          <label htmlFor={`day-${row.key}-date`} className="mb-1 block text-xs font-medium text-gray-600">
+                            Date
+                          </label>
+                          <input
+                            id={`day-${row.key}-date`}
+                            type="date"
+                            min={today}
+                            value={row.date}
+                            onChange={(event) => updateDay(row.key, { date: event.target.value })}
+                            className={inputClass}
+                          />
+                        </div>
+                        <TimeField
+                          id={`day-${row.key}-start`}
+                          label="Start"
+                          defaultValue={row.startTime}
+                          onChange={(value) => updateDay(row.key, { startTime: value })}
+                        />
+                        <TimeField
+                          id={`day-${row.key}-end`}
+                          label="End"
+                          defaultValue={row.endTime}
+                          onChange={(value) => updateDay(row.key, { endTime: value })}
+                        />
+                      </div>
+                      {problem && (
+                        <p role="alert" className="mt-2 text-xs text-error-dark">{problem}</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+
+              {/* The whole list travels as one field; the server validates every day again. */}
+              <input type="hidden" name="slots" value={slotsJSON} />
+            </div>
+          )}
+
+          {/* Live summary: a multi-day request reads back day by day. */}
+          {hallMultiDay && daysValid && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-gray-700">
+              <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+                You are requesting · {sortedDays.length} day{sortedDays.length === 1 ? "" : "s"}
+              </p>
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {sortedDays.map((row) => (
+                  <li key={row.key} className="flex justify-between gap-3 tabular-nums">
+                    <span className="font-semibold">{formatLongDate(row.date)}</span>
+                    <span>
+                      {formatTime12h(row.startTime)} – {formatTime12h(row.endTime)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-gray-500">The hall is not held overnight between days.</p>
+            </div>
+          )}
+
+          {!hallMultiDay && spanDays > 0 && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-gray-700">
               <p className="text-xs font-semibold tracking-wide text-primary uppercase">You are requesting</p>
               {isGuestHouse ? (
@@ -402,19 +554,12 @@ export function BookingModal({
                 <>
                   <p className="mt-1">
                     <span className="font-semibold">{formatLongDate(fromDate)}</span>
-                    {spanDays > 1 && (
-                      <>
-                        {" "}to <span className="font-semibold">{formatLongDate(effectiveToDate)}</span>
-                        <span className="text-gray-500"> · {spanDays} days</span>
-                      </>
-                    )}
                   </p>
                   {startTime && endTime && timeOrder === "ok" && (
                     <p className="mt-0.5">
                       <span className="font-semibold">
                         {formatTime12h(startTime)} – {formatTime12h(endTime)}
                       </span>
-                      {spanDays > 1 && <span className="text-gray-500"> on each of the {spanDays} days</span>}
                     </p>
                   )}
                 </>
@@ -441,7 +586,7 @@ export function BookingModal({
 
           <button
             type="submit"
-            disabled={isPending || facilityType === "" || missingDepartment}
+            disabled={isPending || facilityType === "" || missingDepartment || (hallMultiDay && !daysValid)}
             className="mt-4 w-full rounded-lg bg-primary py-3 font-bold text-white shadow-lg transition-transform hover:bg-primary-dark active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "Sending request…" : "Confirm booking"}

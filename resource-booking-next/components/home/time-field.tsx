@@ -14,23 +14,39 @@ const selectClass =
  * this always reads as AM/PM. Submits `HH:MM` (24-hour) in a hidden input, which
  * is what the server validates, so nothing else changes.
  */
+function split(value?: string): { hour: string; minute: string; period: "AM" | "PM" } {
+  if (!value) return { hour: "", minute: "00", period: "AM" };
+  const [h, m = "00"] = value.split(":");
+  const h24 = Number(h);
+  return {
+    hour: String(h24 % 12 === 0 ? 12 : h24 % 12),
+    minute: m.slice(0, 2),
+    period: h24 >= 12 ? "PM" : "AM",
+  };
+}
+
 export function TimeField({
   id,
   name,
   label,
   required = true,
+  defaultValue,
   onChange,
 }: {
   id: string;
-  name: string;
+  /** Form field name for the hidden `HH:MM` input. Omit to keep the value out of the form. */
+  name?: string;
   label: string;
   required?: boolean;
+  /** Initial 24-hour `HH:MM` value. */
+  defaultValue?: string;
   /** Called with the 24-hour `HH:MM` value ("" until an hour is chosen). */
   onChange?: (value: string) => void;
 }) {
-  const [hour, setHour] = useState("");
-  const [minute, setMinute] = useState("00");
-  const [period, setPeriod] = useState<"AM" | "PM">("AM");
+  const initial = split(defaultValue);
+  const [hour, setHour] = useState(initial.hour);
+  const [minute, setMinute] = useState(initial.minute);
+  const [period, setPeriod] = useState<"AM" | "PM">(initial.period);
 
   let value = "";
   if (hour !== "") {
@@ -100,7 +116,7 @@ export function TimeField({
           <option value="PM">PM</option>
         </select>
       </div>
-      <input type="hidden" name={name} value={value} />
+      {name && <input type="hidden" name={name} value={value} />}
     </div>
   );
 }

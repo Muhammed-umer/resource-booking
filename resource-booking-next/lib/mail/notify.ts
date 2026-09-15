@@ -6,7 +6,7 @@ import { after } from "next/server";
 import { canManageFacility, ROLES } from "@/lib/auth/policy";
 import { bookingToRow, guestHouseToRow, type RequestRow } from "@/lib/bookings/view";
 import { db } from "@/lib/db";
-import { users, type Booking, type FacilityType, type GuestHouseBooking } from "@/lib/db/schema";
+import { users, type Booking, type FacilityType, type GuestHouseBooking, type Slot } from "@/lib/db/schema";
 import { cancelledEmail, decisionEmail, newRequestEmail } from "@/lib/mail/templates";
 import { APP_BASE_URL, sendMail, type MailResult } from "@/lib/mail/transport";
 
@@ -22,7 +22,7 @@ import { APP_BASE_URL, sendMail, type MailResult } from "@/lib/mail/transport";
  * response never waits on SMTP; outside a request (scripts) it runs inline.
  */
 
-type Record_ = Booking | GuestHouseBooking;
+type Record_ = (Booking & { slots?: Slot[] }) | GuestHouseBooking;
 
 function toRow(record: Record_): RequestRow {
   return "facilityType" in record ? bookingToRow(record) : guestHouseToRow(record);

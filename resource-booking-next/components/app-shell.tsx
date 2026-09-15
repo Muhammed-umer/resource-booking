@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { logoutAction } from "@/app/actions/auth";
+import { TeamCredits } from "@/components/team-credits";
 import { NavIcon, type NavIconName } from "@/components/nav-icons";
 import type { AppPath } from "@/lib/routes";
 
@@ -133,6 +134,8 @@ export function AppShell({
                 </Link>
               );
             })}
+
+            <TeamCredits />
           </nav>
         </aside>
 

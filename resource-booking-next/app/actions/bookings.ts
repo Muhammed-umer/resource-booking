@@ -73,14 +73,27 @@ export async function createBookingAction(
       };
     }
 
+    // Multi-day requests arrive as a JSON list of days in `slots`; single-day
+    // ones as the plain date + time fields.
+    let slots: unknown;
+    const rawSlots = formData.get("slots");
+    if (typeof rawSlots === "string" && rawSlots.trim() !== "") {
+      try {
+        slots = JSON.parse(rawSlots);
+      } catch {
+        return { ok: false, message: "The list of days could not be read. Please re-enter them." };
+      }
+    }
+
     const parsed = createBookingSchema.safeParse({
       facilityType: formData.get("facilityType"),
       eventName: formData.get("eventName"),
       department: user.department,
-      fromDate: formData.get("fromDate"),
-      toDate: formData.get("toDate"),
-      startTime: formData.get("startTime"),
-      endTime: formData.get("endTime"),
+      fromDate: formData.get("fromDate") || undefined,
+      toDate: formData.get("toDate") || undefined,
+      startTime: formData.get("startTime") || undefined,
+      endTime: formData.get("endTime") || undefined,
+      slots,
     });
 
     if (!parsed.success) {

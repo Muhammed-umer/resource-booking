@@ -31,31 +31,130 @@ export const facilityTypeSchema = z.enum(facilityTypeEnum.enumValues);
 export const bookingStatusSchema = z.enum(bookingStatusEnum.enumValues);
 export const departmentSchema = z.enum(departmentEnum.enumValues);
 
-/** Seminar hall / auditorium request — mirrors the Booking entity's fields. */
+function eachDate(startDate: string, endDate: string): string[] {
+  const days: string[] = [];
+  const cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  while (cursor <= end) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
+/** One day of a hall request with that day's hours. */
+export const slotSchema = z
+  .object({
+    date: dateString,
+    startTime: timeString,
+    endTime: timeString,
+  })
+  .refine((slot) => slot.startTime < slot.endTime, {
+    message: "The end time must be after the start time.",
+    path: ["endTime"],
+  });
+
+export type SlotInput = z.infer<typeof slotSchema>;
+
+/**
+ * Seminar hall / auditorium request.
+ *
+ * Two accepted shapes:
+ *   - `slots`: one entry per day, each with its own hours (the booking form).
+ *   - `fromDate` + `toDate` + `startTime` + `endTime`: the same hours on every
+ *     day of the range (the original API shape). Expanded into slots.
+ *
+ * The output always carries `slots` (sorted, unique dates) plus the summary
+ * fields `fromDate`/`toDate` (first and last day) and `startTime`/`endTime`
+ * (first day's hours) that the `bookings` row stores.
+ */
 export const createBookingSchema = z
   .object({
     facilityType: z.enum(["SEMINAR_HALL", "AUDITORIUM"]),
     eventName: z.string().trim().min(1, "Event name is required.").max(200),
     department: departmentSchema,
-    fromDate: dateString,
-    toDate: dateString,
-    startTime: timeString,
-    endTime: timeString,
+    fromDate: dateString.optional(),
+    toDate: dateString.optional(),
+    startTime: timeString.optional(),
+    endTime: timeString.optional(),
+    slots: z.array(slotSchema).max(31, "A single request can cover at most 31 days.").optional(),
   })
-  .refine((data) => data.fromDate >= todayISO(), {
-    message: PAST_DATE_MESSAGE,
-    path: ["fromDate"],
-  })
-  .refine((data) => data.fromDate <= data.toDate, {
-    message: "The end date cannot be before the start date.",
-    path: ["toDate"],
-  })
-  .refine((data) => data.startTime < data.endTime, {
-    message: "The end time must be after the start time.",
-    path: ["endTime"],
+  .transform((data, ctx) => {
+    let slots = data.slots ?? [];
+
+    if (slots.length === 0) {
+      const { fromDate, toDate, startTime, endTime } = data;
+      if (!fromDate || !toDate || !startTime || !endTime) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Pick at least one day with a start and end time.",
+          path: ["slots"],
+        });
+        return z.NEVER;
+      }
+      if (fromDate > toDate) {
+        ctx.addIssue({
+          code: "custom",
+          message: "The end date cannot be before the start date.",
+          path: ["toDate"],
+        });
+        return z.NEVER;
+      }
+      if (startTime >= endTime) {
+        ctx.addIssue({
+          code: "custom",
+          message: "The end time must be after the start time.",
+          path: ["endTime"],
+        });
+        return z.NEVER;
+      }
+      if (eachDate(fromDate, toDate).length > 31) {
+        ctx.addIssue({
+          code: "custom",
+          message: "A single request can cover at most 31 days.",
+          path: ["toDate"],
+        });
+        return z.NEVER;
+      }
+      slots = eachDate(fromDate, toDate).map((date) => ({ date, startTime, endTime }));
+    }
+
+    slots = [...slots].sort((a, b) => a.date.localeCompare(b.date));
+
+    const today = todayISO();
+    for (let i = 0; i < slots.length; i++) {
+      if (slots[i].date < today) {
+        ctx.addIssue({ code: "custom", message: PAST_DATE_MESSAGE, path: ["slots", i, "date"] });
+        return z.NEVER;
+      }
+      if (i > 0 && slots[i].date === slots[i - 1].date) {
+        ctx.addIssue({
+          code: "custom",
+          message: "The same day is listed twice. Give each day one time window.",
+          path: ["slots", i, "date"],
+        });
+        return z.NEVER;
+      }
+    }
+
+    const first = slots[0];
+    const last = slots[slots.length - 1];
+    return {
+      facilityType: data.facilityType,
+      eventName: data.eventName,
+      department: data.department,
+      slots,
+      fromDate: first.date,
+      toDate: last.date,
+      startTime: first.startTime,
+      endTime: first.endTime,
+    };
   });
 
-export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+/** What the schema accepts (either shape). */
+export type CreateBookingRequest = z.input<typeof createBookingSchema>;
+/** What the schema produces: always with `slots`. */
+export type CreateBookingInput = z.output<typeof createBookingSchema>;
 
 /** Guest house stay — mirrors the GuestHouse entity's fields. */
 export const createGuestHouseBookingSchema = z

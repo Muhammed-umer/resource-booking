@@ -43,7 +43,20 @@ export function DecisionCard({ row }: { row: RequestRow }) {
           <dt className="text-xs tracking-wide text-gray-400 uppercase">
             Time
           </dt>
-          <dd className="mt-0.5 text-gray-700 tabular-nums">{schedule.time}</dd>
+          <dd className="mt-0.5 text-gray-700 tabular-nums">
+            {schedule.showPerDay ? (
+              <ul className="flex flex-col gap-0.5">
+                {schedule.perDay.map((line) => (
+                  <li key={line.date}>
+                    <span className="inline-block w-20 text-gray-400">{line.day}</span>
+                    {line.time}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              schedule.time
+            )}
+          </dd>
         </div>
         <div>
           <dt className="text-xs tracking-wide text-gray-400 uppercase">
